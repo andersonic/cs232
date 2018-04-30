@@ -29,12 +29,12 @@ def random_action(prob=30):
     move_allowed = True
 
     try:
-        i.driver.find_element_by_class_name("chooseSwitch")
+        i.driver.find_element_by_class_name("switchmenu")
     except common.exceptions.NoSuchElementException:
         switch_allowed = False
 
     try:
-        i.driver.find_element_by_class_name("chooseMove")
+        i.driver.find_element_by_class_name("movemenu")
     except common.exceptions.NoSuchElementException:
         move_allowed = False
 
@@ -43,7 +43,10 @@ def random_action(prob=30):
 
     if switch_allowed and move_allowed:
         if random.randint(1, 100) < switch_prob:
-            random_switch()
+            try:
+                random_switch()
+            except ValueError:
+                random_move()
         else:
             random_move()
     elif switch_allowed:
@@ -60,11 +63,11 @@ def feist():
 
     while not battle_over:
         try:
-            i.driver.find_element_by_class_name("chooseMove")
+            i.driver.find_element_by_class_name("movemenu")
             random_action(switch_prob)
         except common.exceptions.NoSuchElementException:
             try:
-                i.driver.find_element_by_class_name("chooseSwitch")
+                i.driver.find_element_by_class_name("switchmenu")
                 random_action(switch_prob)
             except:
                 pass
