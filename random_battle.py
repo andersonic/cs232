@@ -1,6 +1,7 @@
 from selenium import common
 import random
 import interface as i
+import time
 
 """Plays randbats randomly, with a set probability to switch. Does not store game state,
 as the game state does not affect its actions."""
@@ -38,9 +39,6 @@ def random_action(prob=30):
     except common.exceptions.NoSuchElementException:
         move_allowed = False
 
-    print("Switch allowed: " + str(switch_allowed))
-    print("Move allowed: " + str(move_allowed))
-
     if switch_allowed and move_allowed:
         if random.randint(1, 100) < switch_prob:
             try:
@@ -74,12 +72,18 @@ def feist():
 
         logs = i.driver.find_elements_by_class_name("battle-history")
         for log in logs:
-            if "won" in log.text:
+            log_text = log.text
+            if "won" in log_text and "won't" not in log_text:
                 battle_over = True
-
-    print("Battle over.")
 
 
 def feist_random_enemy():
     i.find_randbat()
     feist()
+
+
+def feist_k_enemies(k=1):
+    for count in range(0,k):
+        feist_random_enemy()
+        i.driver.find_element_by_name("closeRoom").click()
+        time.sleep(2)
