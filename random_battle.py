@@ -9,7 +9,7 @@ as the game state does not affect its actions."""
 
 def start():
     i.open_window("https://play.pokemonshowdown.com")
-    i.log_in("cs232-test-1", "cs232")
+    i.log_in("cs232-test-3", "cs232")
 
 
 def random_switch():
@@ -73,7 +73,7 @@ def feist():
         logs = i.driver.find_elements_by_class_name("battle-history")
         for log in logs:
             log_text = log.text
-            if "won" in log_text and "won't" not in log_text:
+            if "won the battle!" in log_text:
                 battle_over = True
 
 
