@@ -174,17 +174,20 @@ def parse_tooltip_text(text):
     return Pokemon(level, moves, item, ability, current_health, total_health, stats)
 
 
-class Pokemon():
-    def __init__(self, level, moves, item, ability, presenthealth, totalhealth, stats):
+class Pokemon:
+    def __init__(self, type):
+        self.type = type
+
+    """def __init__(self, level, moves, item, ability, presenthealth, totalhealth, stats):
         self.level = level
-        self.type = []
+        self.type = ['normal', 'fighting']
         self.moves = moves
         self.item = item
         self.ability = ability
         self.stats = stats
         self.present_health = presenthealth
         self.total_health = totalhealth
-        self.health_percent = presenthealth/totalhealth
+        self.health_percent = presenthealth/totalhealth"""
 
     def damage_calc(self, enemy_move, enemy_mon):
         rand_number = random.randint(85,100)
@@ -200,7 +203,6 @@ class Pokemon():
         damage *= self.calculate_type_multiplier(enemy_move.type)
         return damage
 
-
     def calculate_type_multiplier(self, move_type):
         type_chart = {
             "normal": {"rock": .5, "steel": .5, "ghost": 0},
@@ -212,7 +214,7 @@ class Pokemon():
             "fire": {"grass": 2, "bug": 2, "steel": 2, "water": .5, "rock": .5, "fire": .5, "dragon": .5},
             "water":{"fire": 2, "rock": 2, "ground": 2, "grass": .5, "water": .5, "dragon": .5},
             "grass":{"water": 2, "rock": 2, "ground": 2, "flying": .5, "fire": .5, "grass": .5, "bug": .5,
-                     "poison": .5, "flying": .5, "steel": .5, "dragon": .5},
+                     "poison": .5, "steel": .5, "dragon": .5},
             "bug":{"grass": 2, "psychic": 2, "dark": 2, "fighting": .5, "flying": .5, "poison": .5, "ghost": .5,
                    "steel": .5, "fire": .5, "fairy": .5},
             "rock":{"ice": 2, "fire": 2, "flying": 2, "bug": 2, "steel": .5, "fighting": .5, "ground": .5},
@@ -228,15 +230,16 @@ class Pokemon():
                    "water": .5, "ice": .5}
         }
 
-        mult = 1
+        multiplier = 1
         if self.type[0] in type_chart[move_type]:
-            mult *= type_chart[move_type][self.type[0]]
+            multiplier *= type_chart[move_type][self.type[0]]
         if self.type[1] in type_chart[move_type]:
-            mult *= type_chart[move_type][self.type[1]]
+            multiplier *= type_chart[move_type][self.type[1]]
+
+        return multiplier
 
 
-
-class move():
+class Move:
     def __init__(self, type, power, physical):
         self.type = type
         self.power = power
