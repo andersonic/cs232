@@ -9,7 +9,7 @@ as the game state does not affect its actions."""
 
 def start():
     i.open_window("https://play.pokemonshowdown.com")
-    i.log_in("cs232-test-3", "cs232")
+    i.log_in("cs232-test-2", "cs232")
 
 
 def random_switch():
@@ -61,20 +61,23 @@ def feist():
 
     while not battle_over:
         try:
-            i.driver.find_element_by_class_name("movemenu")
-            random_action(switch_prob)
-        except common.exceptions.NoSuchElementException:
             try:
-                i.driver.find_element_by_class_name("switchmenu")
+                i.driver.find_element_by_class_name("movemenu")
                 random_action(switch_prob)
-            except:
-                pass
+            except common.exceptions.NoSuchElementException:
+                try:
+                    i.driver.find_element_by_class_name("switchmenu")
+                    random_action(switch_prob)
+                except:
+                    pass
 
-        logs = i.driver.find_elements_by_class_name("battle-history")
-        for log in logs:
-            log_text = log.text
-            if "won the battle!" in log_text:
-                battle_over = True
+            logs = i.driver.find_elements_by_class_name("battle-history")
+            for log in logs:
+                log_text = log.text
+                if "won the battle!" in log_text:
+                    battle_over = True
+        except common.exceptions.ElementNotVisibleException:
+            time.sleep(2)
 
 
 def feist_random_enemy():

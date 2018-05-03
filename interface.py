@@ -1,6 +1,7 @@
 from selenium import webdriver, common
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
+import random
 
 import os
 
@@ -184,3 +185,59 @@ class Pokemon():
         self.present_health = presenthealth
         self.total_health = totalhealth
         self.health_percent = presenthealth/totalhealth
+
+    def damage_calc(self, enemy_move, enemy_mon):
+        rand_number = random.randint(85,100)
+        damage = 0
+        if enemy_move.physical:
+            damage = \
+                (((2*enemy_mon.level/5 + 2) * enemy_mon.stats[0]*enemy_move.power/self.stats[1])/50 + 2) * 93/100
+        else:
+            damage = \
+                (((2*enemy_mon.level/5 + 2) * enemy_mon.stats[2]*enemy_move.power/self.stats[3])/50 + 2) * 93/100
+        if enemy_move.type in enemy_mon.type:
+            damage *= 1.5
+        damage *= self.calculate_type_multiplier(enemy_move.type)
+        return damage
+
+
+    def calculate_type_multiplier(self, move_type):
+        type_chart = {
+            "normal": {"rock": .5, "steel": .5, "ghost": 0},
+            "fighting":{"normal": 2, "rock": 2, "steel": 2, "ice": 2, "dark": 2, "psychic": .5,
+                        "flying": .5, "poison": .5, "bug": .5, "fairy": .5, "ghost": 0},
+            "dragon":{"dragon": 2, "steel": .5, "fairy": 0},
+            "fairy":{"dragon": 2, "fighting": 2, "dark": 2, "poison": .5, "steel": .5, "fire": .5},
+            "steel":{"fairy": 2, "rock": 2, "ice": 2, "steel": .5, "fire": .5, "water": .5, "electric": .5},
+            "fire": {"grass": 2, "bug": 2, "steel": 2, "water": .5, "rock": .5, "fire": .5, "dragon": .5},
+            "water":{"fire": 2, "rock": 2, "ground": 2, "grass": .5, "water": .5, "dragon": .5},
+            "grass":{"water": 2, "rock": 2, "ground": 2, "flying": .5, "fire": .5, "grass": .5, "bug": .5,
+                     "poison": .5, "flying": .5, "steel": .5, "dragon": .5},
+            "bug":{"grass": 2, "psychic": 2, "dark": 2, "fighting": .5, "flying": .5, "poison": .5, "ghost": .5,
+                   "steel": .5, "fire": .5, "fairy": .5},
+            "rock":{"ice": 2, "fire": 2, "flying": 2, "bug": 2, "steel": .5, "fighting": .5, "ground": .5},
+            "ground":{"fire": 2, "electric": 2, "rock": 2, "steel": 2, "poison": 2, "grass": .5, "bug": .5,
+                      "flying": 0},
+            "electric":{"water": 2, "flying": 2, "grass": .5, "electric": .5, "dragon": .5, "ground": 0},
+            "dark":{"psychic": 2, "ghost": 2, "fighting": .5, "dark": .5, "fairy": .5},
+            "ghost":{"ghost": 2, "psychic": 2, "dark": .5, "normal": 0},
+            "flying":{"bug": 2, "grass": 2, "fighting": 2, "rock": .5, "steel": .5, "electric": .5},
+            "poison":{"grass": 2, "fairy": 2, "poison": .5, "ground": .5, "rock": .5, "ghost": .5, "steel": 0},
+            "psychic":{"fighting": 2, "poison": 2, "psychic": .5, "steel": .5, "dark": 0},
+            "ice":{"dragon": 2, "flying": 2, "ground": 2, "grass": 2, "steel": .5, "fire": .5,
+                   "water": .5, "ice": .5}
+        }
+
+        mult = 1
+        if self.type[0] in type_chart[move_type]:
+            mult *= type_chart[move_type][self.type[0]]
+        if self.type[1] in type_chart[move_type]:
+            mult *= type_chart[move_type][self.type[1]]
+
+
+
+class move():
+    def __init__(self, type, power, physical):
+        self.type = type
+        self.power = power
+        self.physical = physical
