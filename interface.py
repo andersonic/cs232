@@ -3,6 +3,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 import random
 import math
+import time
 
 import os
 
@@ -149,18 +150,19 @@ def get_own_team():
 def parse_own_team(element):
     text = element.text
 
+    # Get health
     text = text.split("\n")
     level = int(text[0].split(" ")[len(text[0].split(" ")) - 1][1:])
     current_health = int(text[1].split(" ")[2].split("/")[0][1:])
-
     total_health_text = text[1].split(" ")[2].split("/")[1]
-
     total_health = int(total_health_text[0:len(total_health_text) - 1])
 
+    # Get ability and item
     temp = text[2].split(" / ")
     ability = " ".join(temp[1].split(" ")[1:])
     item = " ".join(temp[1].split(" ")[1:])
 
+    # Get stats
     stats = text[3].split("/")
     temp = []
     for i in range(0,5):
@@ -171,12 +173,17 @@ def parse_own_team(element):
                 break
     stats = temp
 
+    # Get moves
     moves = []
     try:
         for i in range(4, 8):
             moves.append(text[i][2:])
     except IndexError:
         pass
+
+    for move in moves:
+        query_data(move)
+    time.sleep(1)
 
     moves = [parse_move_text(i) for i in moves]
 
@@ -196,8 +203,9 @@ def query_data(data):
     textbox.send_keys("/data " + data)
     textbox.send_keys(Keys.ENTER)
 
-    all_data = driver.find_elements_by_class_name("utilichart")
-    return all_data
+
+def retrieve_data():
+    return driver.find_elements_by_class_name("utilichart")
 
 
 def calc_stats(base_stats, level):
@@ -211,7 +219,9 @@ def calc_stats(base_stats, level):
 
 
 def get_base_stats(mon):
-    all_mons = query_data(mon)
+    query_data(mon)
+    time.sleep(1)
+    all_mons = retrieve_data()
     base_stats = []
     for pokemon in all_mons:
         if pokemon.text.split('\n')[1] == mon:
@@ -321,7 +331,7 @@ class Move:
 
 
 def parse_move_text(move):
-    all_stuff = query_data(move)
+    all_stuff = retrieve_data()
     move_data = None
     for item in all_stuff:
         if item.text.split('\n')[0] == move:
@@ -333,6 +343,10 @@ def parse_move_text(move):
     power = 0
 
     if category != "Status":
-        power = int(move_data.text.split("\n")[2])
+        try:
+            power = int(move_data.text.split("\n")[2])
+        except ValueError:
+            pass
+
 
     return Move(type, power, category)
