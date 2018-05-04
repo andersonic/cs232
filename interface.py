@@ -54,9 +54,11 @@ def log_in(username, password):
 
     return logged_in
 
+
 def start():
     open_window("https://play.pokemonshowdown.com")
     log_in("cs232-test-1", "cs232")
+
 
 def find_randbat():
     driver.find_element_by_name("search").click()
@@ -176,6 +178,8 @@ def parse_own_team(element):
     except IndexError:
         pass
 
+    moves = [parse_move_text(i) for i in moves]
+
     images = element.find_elements_by_tag_name("img")
     types = []
     for image in images:
@@ -187,22 +191,27 @@ def parse_own_team(element):
     return Pokemon(level, types, moves, item, ability, current_health, total_health, stats)
 
 
+def query_data(data):
+    textbox = driver.find_element_by_class_name("battle-log-add").find_elements_by_class_name("textbox")[1]
+    textbox.send_keys("/data " + data)
+    textbox.send_keys(Keys.ENTER)
+
+    all_data = driver.find_elements_by_class_name("utilichart")
+    return all_data
+
+
 def calc_stats(base_stats, level):
     stats = []
     stats.append(math.floor((31 + 2 * base_stats[0] + 21) * level/100 + 10 + level))
 
-    for i in range(0, 5):
-        stats.append(math.floor((31 + 2 * base_stats[i + 1] + 21) * level/100 + 5))
+    for i in range(1, 5):
+        stats.append(math.floor((31 + 2 * base_stats[i] + 21) * level/100 + 5))
 
     return stats
 
 
 def get_base_stats(mon):
-    textbox = driver.find_element_by_class_name("battle-log-add").find_elements_by_class_name("textbox")[1]
-    textbox.send_keys("/data " + mon)
-    textbox.send_keys(Keys.ENTER)
-
-    all_mons = driver.find_elements_by_class_name("utilichart")
+    all_mons = query_data(mon)
     base_stats = []
     for pokemon in all_mons:
         if pokemon.text.split('\n')[1] == mon:
@@ -257,10 +266,10 @@ class Pokemon:
     def damage_calc(self, enemy_move, enemy_mon):
         rand_number = random.randint(85,100)
         damage = 0
-        if enemy_move.physical:
+        if enemy_move.category == 'Physical':
             damage = \
                 (((2*enemy_mon.level/5 + 2) * enemy_mon.stats[0]*enemy_move.power/self.stats[1])/50 + 2) * 93/100
-        else:
+        elif enemy_move.category == 'Special':
             damage = \
                 (((2*enemy_mon.level/5 + 2) * enemy_mon.stats[2]*enemy_move.power/self.stats[3])/50 + 2) * 93/100
         if enemy_move.type in enemy_mon.type:
@@ -305,7 +314,25 @@ class Pokemon:
 
 
 class Move:
-    def __init__(self, type, power, physical):
+    def __init__(self, type, power, category):
         self.type = type
         self.power = power
-        self.physical = physical
+        self.category = category
+
+
+def parse_move_text(move):
+    all_stuff = query_data(move)
+    move_data = None
+    for item in all_stuff:
+        if item.text.split('\n')[0] == move:
+            move_data = item
+
+    images = move_data.find_element_by_class_name("typecol").find_elements_by_tag_name("img")
+    type = images[0].get_attribute("alt")
+    category = images[1].get_attribute("alt")
+    power = 0
+
+    if category != "Status":
+        power = int(move_data.text.split("\n")[2])
+
+    return Move(type, power, category)
