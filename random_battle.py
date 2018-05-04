@@ -1,6 +1,7 @@
 from selenium import common
 import random
 import interface as i
+import time
 
 """Plays randbats randomly, with a set probability to switch. Does not store game state,
 as the game state does not affect its actions."""
@@ -8,7 +9,7 @@ as the game state does not affect its actions."""
 
 def start():
     i.open_window("https://play.pokemonshowdown.com")
-    i.log_in("cs232-test-1", "cs232")
+    i.log_in("cs232-test-2", "cs232")
 
 
 def random_switch():
@@ -38,12 +39,12 @@ def random_action(prob=30):
     except common.exceptions.NoSuchElementException:
         move_allowed = False
 
-    print("Switch allowed: " + str(switch_allowed))
-    print("Move allowed: " + str(move_allowed))
-
     if switch_allowed and move_allowed:
         if random.randint(1, 100) < switch_prob:
-            random_switch()
+            try:
+                random_switch()
+            except ValueError:
+                random_move()
         else:
             random_move()
     elif switch_allowed:
@@ -60,23 +61,32 @@ def feist():
 
     while not battle_over:
         try:
-            i.driver.find_element_by_class_name("movemenu")
-            random_action(switch_prob)
-        except common.exceptions.NoSuchElementException:
             try:
-                i.driver.find_element_by_class_name("switchmenu")
+                i.driver.find_element_by_class_name("movemenu")
                 random_action(switch_prob)
-            except:
-                pass
+            except common.exceptions.NoSuchElementException:
+                try:
+                    i.driver.find_element_by_class_name("switchmenu")
+                    random_action(switch_prob)
+                except:
+                    pass
 
-        logs = i.driver.find_elements_by_class_name("battle-history")
-        for log in logs:
-            if "won" in log.text:
-                battle_over = True
-
-    print("Battle over.")
+            logs = i.driver.find_elements_by_class_name("battle-history")
+            for log in logs:
+                log_text = log.text
+                if "won the battle!" in log_text:
+                    battle_over = True
+        except common.exceptions.ElementNotVisibleException:
+            time.sleep(2)
 
 
 def feist_random_enemy():
     i.find_randbat()
     feist()
+
+
+def feist_k_enemies(k=1):
+    for count in range(0,k):
+        feist_random_enemy()
+        i.driver.find_element_by_name("closeRoom").click()
+        time.sleep(2)
