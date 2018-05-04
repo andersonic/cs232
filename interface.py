@@ -2,6 +2,7 @@ from selenium import webdriver, common
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 import random
+import math
 
 import os
 
@@ -188,10 +189,10 @@ def parse_own_team(element):
 
 def calc_stats(base_stats, level):
     stats = []
-    stats.append((31 + 2 * base_stats[0] + 85/4) * level/100 + 10 + level)
+    stats.append(math.floor((31 + 2 * base_stats[0] + 21) * level/100 + 10 + level))
 
     for i in range(0, 5):
-        stats.append((31 + 2 * base_stats[i + 1] + 85/4) * level/100 + 5)
+        stats.append(math.floor((31 + 2 * base_stats[i + 1] + 21) * level/100 + 5))
 
     return stats
 
