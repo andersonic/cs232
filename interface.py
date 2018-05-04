@@ -128,20 +128,21 @@ def get_own_team():
     hover = ActionChains(driver).move_to_element(current_mon)
     hover.perform()
     pokemon_text = driver.find_element_by_id("tooltipwrapper").text
-    pokemon_list.append(parse_tooltip_text(pokemon_text))
+    pokemon_list.append(parse_own_team(pokemon_text))
 
     benched_mons = driver.find_elements_by_name("chooseSwitch")
 
     for mon in benched_mons:
         hover = ActionChains(driver).move_to_element(mon)
         hover.perform()
-        pokemon_text = driver.find_element_by_id("tooltipwrapper").text
-        pokemon_list.append(parse_tooltip_text(pokemon_text))
+        pokemon_list.append(parse_own_team(driver.find_element_by_id("tooltipwrapper")))
 
     return pokemon_list
 
 
-def parse_tooltip_text(text):
+def parse_own_team(element):
+    text = element.text
+
     text = text.split("\n")
     level = int(text[0].split(" ")[len(text[0].split(" ")) - 1][1:])
     current_health = int(text[1].split(" ")[2].split("/")[0][1:])
@@ -171,23 +172,76 @@ def parse_tooltip_text(text):
     except IndexError:
         pass
 
-    return Pokemon(level, moves, item, ability, current_health, total_health, stats)
+    images = element.find_elements_by_tag_name("img")
+    types = []
+    for image in images:
+        if image.get_attribute("alt") is not "M" and image.get_attribute("alt") is not "F":
+            types.append(image.get_attribute("alt"))
+
+    return Pokemon(level, types, moves, item, ability, current_health, total_health, stats)
+
+
+def calc_stats(base_stats, level):
+    stats = []
+    stats.append((31 + 2 * base_stats[0] + 85/4) * level/100 + 10 + level)
+
+    for i in range(0, 5):
+        stats.append((31 + 2 * base_stats[i + 1] + 85/4) * level/100 + 5)
+
+    return stats
+
+
+def get_base_stats(mon):
+    textbox = driver.find_element_by_class_name("textbox")
+    textbox.sendKeys("/data " + mon)
+    textbox.sendKeys(Keys.ENTER)
+
+    all_mons = driver.find_elements_by_class_name("utilichart")
+    base_stats = []
+    for pokemon in all_mons:
+        if pokemon.text.split('\n')[1] is mon:
+            stat_list = pokemon.find_elements_by_class_name("statcol")
+            for stat in stat_list:
+                base_stats.append(int(stat.text.split("\n")[1]))
+    return base_stats
+
+
+def parse_opposing_mon():
+    enemy_mon = driver.find_element_by_class_name("foehint").find_elements_by_tag_name("div")[2]
+    hover = ActionChains(driver).move_to_element(enemy_mon)
+    hover.perform()
+
+    tooltip = driver.find_element_by_id("tooltipwrapper")
+
+    help_text = tooltip.text.split("\n")
+
+    name_temp = help_text[0].split(" ")
+    name = " ".join(name_temp[:len(name_temp) - 1])
+
+    level = int(name_temp[1][1:])
+
+    base_stats = get_base_stats(name)
+
+    stats = calc_stats(base_stats, level)
+
+    images = help_text.find_elements_by_tag_name("img")
+    types = []
+    for image in images:
+        if image.get_attribute("alt") is not "M" and image.get_attribute("alt") is not "F":
+            types.append(image.get_attribute("alt"))
 
 
 class Pokemon:
-    def __init__(self, type):
-        self.type = type
-
-    """def __init__(self, level, moves, item, ability, presenthealth, totalhealth, stats):
+    def __init__(self, level, type, moves, item, ability, presenthealth, totalhealth, stats):
         self.level = level
-        self.type = ['normal', 'fighting']
+        self.type = type
         self.moves = moves
         self.item = item
         self.ability = ability
         self.stats = stats
         self.present_health = presenthealth
         self.total_health = totalhealth
-        self.health_percent = presenthealth/totalhealth"""
+        self.health_percent = presenthealth/totalhealth
 
     def damage_calc(self, enemy_move, enemy_mon):
         rand_number = random.randint(85,100)
@@ -205,29 +259,29 @@ class Pokemon:
 
     def calculate_type_multiplier(self, move_type):
         type_chart = {
-            "normal": {"rock": .5, "steel": .5, "ghost": 0},
-            "fighting":{"normal": 2, "rock": 2, "steel": 2, "ice": 2, "dark": 2, "psychic": .5,
-                        "flying": .5, "poison": .5, "bug": .5, "fairy": .5, "ghost": 0},
-            "dragon":{"dragon": 2, "steel": .5, "fairy": 0},
-            "fairy":{"dragon": 2, "fighting": 2, "dark": 2, "poison": .5, "steel": .5, "fire": .5},
-            "steel":{"fairy": 2, "rock": 2, "ice": 2, "steel": .5, "fire": .5, "water": .5, "electric": .5},
-            "fire": {"grass": 2, "bug": 2, "steel": 2, "water": .5, "rock": .5, "fire": .5, "dragon": .5},
-            "water":{"fire": 2, "rock": 2, "ground": 2, "grass": .5, "water": .5, "dragon": .5},
-            "grass":{"water": 2, "rock": 2, "ground": 2, "flying": .5, "fire": .5, "grass": .5, "bug": .5,
-                     "poison": .5, "steel": .5, "dragon": .5},
-            "bug":{"grass": 2, "psychic": 2, "dark": 2, "fighting": .5, "flying": .5, "poison": .5, "ghost": .5,
-                   "steel": .5, "fire": .5, "fairy": .5},
-            "rock":{"ice": 2, "fire": 2, "flying": 2, "bug": 2, "steel": .5, "fighting": .5, "ground": .5},
-            "ground":{"fire": 2, "electric": 2, "rock": 2, "steel": 2, "poison": 2, "grass": .5, "bug": .5,
-                      "flying": 0},
-            "electric":{"water": 2, "flying": 2, "grass": .5, "electric": .5, "dragon": .5, "ground": 0},
-            "dark":{"psychic": 2, "ghost": 2, "fighting": .5, "dark": .5, "fairy": .5},
-            "ghost":{"ghost": 2, "psychic": 2, "dark": .5, "normal": 0},
-            "flying":{"bug": 2, "grass": 2, "fighting": 2, "rock": .5, "steel": .5, "electric": .5},
-            "poison":{"grass": 2, "fairy": 2, "poison": .5, "ground": .5, "rock": .5, "ghost": .5, "steel": 0},
-            "psychic":{"fighting": 2, "poison": 2, "psychic": .5, "steel": .5, "dark": 0},
-            "ice":{"dragon": 2, "flying": 2, "ground": 2, "grass": 2, "steel": .5, "fire": .5,
-                   "water": .5, "ice": .5}
+            "Normal": {"Rock": .5, "Steel": .5, "Ghost": 0},
+            "Fighting":{"Normal": 2, "Rock": 2, "Steel": 2, "Ice": 2, "Dark": 2, "Psychic": .5,
+                        "Flying": .5, "Poison": .5, "Bug": .5, "Fairy": .5, "Ghost": 0},
+            "Dragon":{"Dragon": 2, "Steel": .5, "Fairy": 0},
+            "Fairy":{"Dragon": 2, "Fighting": 2, "Dark": 2, "Poison": .5, "Steel": .5, "Fire": .5},
+            "Steel":{"Fairy": 2, "Rock": 2, "Ice": 2, "Steel": .5, "Fire": .5, "Water": .5, "Electric": .5},
+            "Fire": {"Grass": 2, "Bug": 2, "Steel": 2, "Water": .5, "Rock": .5, "Fire": .5, "Dragon": .5},
+            "Water":{"Fire": 2, "Rock": 2, "Ground": 2, "Grass": .5, "Water": .5, "Dragon": .5},
+            "Grass":{"Water": 2, "Rock": 2, "Ground": 2, "Flying": .5, "Fire": .5, "Grass": .5, "Bug": .5,
+                     "Poison": .5, "Steel": .5, "Dragon": .5},
+            "Bug":{"Grass": 2, "Psychic": 2, "Dark": 2, "Fighting": .5, "Flying": .5, "Poison": .5, "Ghost": .5,
+                   "Steel": .5, "Fire": .5, "Fairy": .5},
+            "Rock":{"Ice": 2, "Fire": 2, "Flying": 2, "Bug": 2, "Steel": .5, "Fighting": .5, "Ground": .5},
+            "Ground":{"Fire": 2, "Electric": 2, "Rock": 2, "Steel": 2, "Poison": 2, "Grass": .5, "Bug": .5,
+                      "Flying": 0},
+            "Electric":{"Water": 2, "Flying": 2, "Grass": .5, "Electric": .5, "Dragon": .5, "Ground": 0},
+            "Dark":{"Psychic": 2, "Ghost": 2, "Fighting": .5, "Dark": .5, "Fairy": .5},
+            "Ghost":{"Ghost": 2, "Psychic": 2, "Dark": .5, "Normal": 0},
+            "Flying":{"Bug": 2, "Grass": 2, "Fighting": 2, "Rock": .5, "Steel": .5, "Electric": .5},
+            "Poison":{"Grass": 2, "Fairy": 2, "Poison": .5, "Ground": .5, "Rock": .5, "Ghost": .5, "Steel": 0},
+            "Psychic":{"Fighting": 2, "Poison": 2, "Psychic": .5, "Steel": .5, "Dark": 0},
+            "Ice":{"Dragon": 2, "Flying": 2, "Ground": 2, "Grass": 2, "Steel": .5, "Fire": .5,
+                   "Water": .5, "Ice": .5}
         }
 
         multiplier = 1
