@@ -53,6 +53,9 @@ def log_in(username, password):
 
     return logged_in
 
+def start():
+    open_window("https://play.pokemonshowdown.com")
+    log_in("cs232-test-1", "cs232")
 
 def find_randbat():
     driver.find_element_by_name("search").click()
@@ -127,8 +130,8 @@ def get_own_team():
     current_mon = driver.find_element_by_name("chooseDisabled")
     hover = ActionChains(driver).move_to_element(current_mon)
     hover.perform()
-    pokemon_text = driver.find_element_by_id("tooltipwrapper").text
-    pokemon_list.append(parse_own_team(pokemon_text))
+    pokemon = driver.find_element_by_id("tooltipwrapper")
+    pokemon_list.append(parse_own_team(pokemon))
 
     benched_mons = driver.find_elements_by_name("chooseSwitch")
 
@@ -177,6 +180,8 @@ def parse_own_team(element):
     for image in images:
         if image.get_attribute("alt") is not "M" and image.get_attribute("alt") is not "F":
             types.append(image.get_attribute("alt"))
+    if len(types) == 1:
+        types.append('none')
 
     return Pokemon(level, types, moves, item, ability, current_health, total_health, stats)
 
@@ -192,14 +197,14 @@ def calc_stats(base_stats, level):
 
 
 def get_base_stats(mon):
-    textbox = driver.find_element_by_class_name("textbox")
-    textbox.sendKeys("/data " + mon)
-    textbox.sendKeys(Keys.ENTER)
+    textbox = driver.find_element_by_class_name("battle-log-add").find_elements_by_class_name("textbox")[1]
+    textbox.send_keys("/data " + mon)
+    textbox.send_keys(Keys.ENTER)
 
     all_mons = driver.find_elements_by_class_name("utilichart")
     base_stats = []
     for pokemon in all_mons:
-        if pokemon.text.split('\n')[1] is mon:
+        if pokemon.text.split('\n')[1] == mon:
             stat_list = pokemon.find_elements_by_class_name("statcol")
             for stat in stat_list:
                 base_stats.append(int(stat.text.split("\n")[1]))
@@ -218,17 +223,22 @@ def parse_opposing_mon():
     name_temp = help_text[0].split(" ")
     name = " ".join(name_temp[:len(name_temp) - 1])
 
-    level = int(name_temp[1][1:])
+    level = int(name_temp[len(name_temp) - 1][1:])
 
     base_stats = get_base_stats(name)
 
     stats = calc_stats(base_stats, level)
 
-    images = help_text.find_elements_by_tag_name("img")
+    images = tooltip.find_elements_by_tag_name("img")
     types = []
     for image in images:
         if image.get_attribute("alt") is not "M" and image.get_attribute("alt") is not "F":
             types.append(image.get_attribute("alt"))
+
+    if len(types) == 1:
+        types.append('none')
+
+    return Pokemon(level, types, [], None, None, stats[0], stats[0], stats[1:])
 
 
 class Pokemon:
