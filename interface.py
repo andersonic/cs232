@@ -4,10 +4,11 @@ from selenium.webdriver.common.action_chains import ActionChains
 import random
 import math
 import time
-
 import os
+import demjson
 
 driver = None
+all_pokemon_data = demjson.decode(open('pokemon_data.txt', 'r').read())
 
 
 def open_window(url):
@@ -231,11 +232,23 @@ def get_base_stats(mon):
     return base_stats
 
 
+def get_possible_moves(name):
+    return all_pokemon_data[name.replace(" ", "").lower()]['randomBattleMoves']
+
+
+def handle_list_moves(moves):
+    for move in moves:
+        query_data(move)
+    time.sleep(1)
+    parsed_moves = [parse_move_text(i) for i in moves]
+    return parsed_moves
+
+
 def parse_opposing_mon():
+    # Get element with data
     enemy_mon = driver.find_element_by_class_name("foehint").find_elements_by_tag_name("div")[2]
     hover = ActionChains(driver).move_to_element(enemy_mon)
     hover.perform()
-
     tooltip = driver.find_element_by_id("tooltipwrapper")
 
     help_text = tooltip.text.split("\n")
@@ -258,7 +271,10 @@ def parse_opposing_mon():
     if len(types) == 1:
         types.append('none')
 
-    return Pokemon(level, types, [], None, None, stats[0], stats[0], stats[1:])
+    moves = handle_list_moves(get_possible_moves(name))
+
+    return Pokemon(level, types, moves, None, None, stats[0], stats[0], stats[1:])
+
 
 
 class Pokemon:
@@ -334,7 +350,8 @@ def parse_move_text(move):
     all_stuff = retrieve_data()
     move_data = None
     for item in all_stuff:
-        if item.text.split('\n')[0] == move:
+        move_name = item.text.split('\n')[0]
+        if move_name == move or move_name.replace(" ", "").lower() == move:
             move_data = item
 
     images = move_data.find_element_by_class_name("typecol").find_elements_by_tag_name("img")
