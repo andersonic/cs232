@@ -3,12 +3,13 @@
 ### Status Updates
 - Getting type now possible through image alts!
 - accessing opposing Pokémon now possible
+- Get data on both your moves and their moves using /data, and create move instances
+- check that damage calculation works
 
 ### To Do
 - COMMENTS
 - Get opposing Pokemon's possible moves
-- Get data on both your moves and their moves using /data, and create move instances
-- check that damage calculation works
-- Implement feature-described state
-- Implement deep q-learning
-- Time permitting, implement expectimax
+- Implement rating
+- Implement expectimax
+- Handle items and abilities (should be done before implementing expectimax unless severe time crunch occurs)
+- Time permitting, implement deep q learning
