@@ -3,10 +3,14 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 import random
 import math
-
+import time
 import os
+import demjson
 
 driver = None
+all_pokemon_data = demjson.decode(open('pokemon_data.txt', 'r').read())
+own_team = []
+opponent_team = []
 
 
 def open_window(url):
@@ -54,9 +58,11 @@ def log_in(username, password):
 
     return logged_in
 
+
 def start():
     open_window("https://play.pokemonshowdown.com")
     log_in("cs232-test-1", "cs232")
+
 
 def find_randbat():
     driver.find_element_by_name("search").click()
@@ -141,24 +147,27 @@ def get_own_team():
         hover.perform()
         pokemon_list.append(parse_own_team(driver.find_element_by_id("tooltipwrapper")))
 
+    own_team = pokemon_list
     return pokemon_list
 
 
 def parse_own_team(element):
     text = element.text
 
+    # Get health
     text = text.split("\n")
+    name = " ".join(text[0].split(" ")[:len(text[0].split(" "))-1])
     level = int(text[0].split(" ")[len(text[0].split(" ")) - 1][1:])
     current_health = int(text[1].split(" ")[2].split("/")[0][1:])
-
     total_health_text = text[1].split(" ")[2].split("/")[1]
-
     total_health = int(total_health_text[0:len(total_health_text) - 1])
 
+    # Get ability and item
     temp = text[2].split(" / ")
     ability = " ".join(temp[1].split(" ")[1:])
     item = " ".join(temp[1].split(" ")[1:])
 
+    # Get stats
     stats = text[3].split("/")
     temp = []
     for i in range(0,5):
@@ -169,12 +178,19 @@ def parse_own_team(element):
                 break
     stats = temp
 
+    # Get moves
     moves = []
     try:
         for i in range(4, 8):
             moves.append(text[i][2:])
     except IndexError:
         pass
+
+    for move in moves:
+        query_data(move)
+    time.sleep(1)
+
+    moves = [parse_move_text(i) for i in moves]
 
     images = element.find_elements_by_tag_name("img")
     types = []
@@ -184,25 +200,33 @@ def parse_own_team(element):
     if len(types) == 1:
         types.append('none')
 
-    return Pokemon(level, types, moves, item, ability, current_health, total_health, stats)
+    return Pokemon(name, level, types, moves, item, ability, current_health, total_health, stats)
+
+
+def query_data(data):
+    textbox = driver.find_element_by_class_name("battle-log-add").find_elements_by_class_name("textbox")[1]
+    textbox.send_keys("/data " + data)
+    textbox.send_keys(Keys.ENTER)
+
+
+def retrieve_data():
+    return driver.find_elements_by_class_name("utilichart")
 
 
 def calc_stats(base_stats, level):
     stats = []
     stats.append(math.floor((31 + 2 * base_stats[0] + 21) * level/100 + 10 + level))
 
-    for i in range(0, 5):
-        stats.append(math.floor((31 + 2 * base_stats[i + 1] + 21) * level/100 + 5))
+    for i in range(1, 5):
+        stats.append(math.floor((31 + 2 * base_stats[i] + 21) * level/100 + 5))
 
     return stats
 
 
 def get_base_stats(mon):
-    textbox = driver.find_element_by_class_name("battle-log-add").find_elements_by_class_name("textbox")[1]
-    textbox.send_keys("/data " + mon)
-    textbox.send_keys(Keys.ENTER)
-
-    all_mons = driver.find_elements_by_class_name("utilichart")
+    query_data(mon)
+    time.sleep(1)
+    all_mons = retrieve_data()
     base_stats = []
     for pokemon in all_mons:
         if pokemon.text.split('\n')[1] == mon:
@@ -212,11 +236,23 @@ def get_base_stats(mon):
     return base_stats
 
 
+def get_possible_moves(name):
+    return all_pokemon_data[name.replace(" ", "").lower()]['randomBattleMoves']
+
+
+def handle_list_moves(moves):
+    for move in moves:
+        query_data(move)
+    time.sleep(1)
+    parsed_moves = [parse_move_text(i) for i in moves]
+    return parsed_moves
+
+
 def parse_opposing_mon():
+    # Get element with data
     enemy_mon = driver.find_element_by_class_name("foehint").find_elements_by_tag_name("div")[2]
     hover = ActionChains(driver).move_to_element(enemy_mon)
     hover.perform()
-
     tooltip = driver.find_element_by_id("tooltipwrapper")
 
     help_text = tooltip.text.split("\n")
@@ -239,11 +275,17 @@ def parse_opposing_mon():
     if len(types) == 1:
         types.append('none')
 
-    return Pokemon(level, types, [], None, None, stats[0], stats[0], stats[1:])
+    moves = handle_list_moves(get_possible_moves(name))
+
+    new_mon = Pokemon(name, level, types, moves, None, None, stats[0], stats[0], stats[1:])
+    if not new_mon in opponent_team:
+        opponent_team.append(new_mon)
+    return new_mon
 
 
 class Pokemon:
-    def __init__(self, level, type, moves, item, ability, presenthealth, totalhealth, stats):
+    def __init__(self, name, level, type, moves, item, ability, presenthealth, totalhealth, stats):
+        self.name = name
         self.level = level
         self.type = type
         self.moves = moves
@@ -254,13 +296,20 @@ class Pokemon:
         self.total_health = totalhealth
         self.health_percent = presenthealth/totalhealth
 
+    def __eq__(self, other):
+        """Note that this definition of equality breaks down when comparing Pokémon on opposite teams"""
+        return self.name == other.name
+
+    def __str__(self):
+        return self.name
+
     def damage_calc(self, enemy_move, enemy_mon):
         rand_number = random.randint(85,100)
         damage = 0
-        if enemy_move.physical:
+        if enemy_move.category == 'Physical':
             damage = \
                 (((2*enemy_mon.level/5 + 2) * enemy_mon.stats[0]*enemy_move.power/self.stats[1])/50 + 2) * 93/100
-        else:
+        elif enemy_move.category == 'Special':
             damage = \
                 (((2*enemy_mon.level/5 + 2) * enemy_mon.stats[2]*enemy_move.power/self.stats[3])/50 + 2) * 93/100
         if enemy_move.type in enemy_mon.type:
@@ -305,7 +354,30 @@ class Pokemon:
 
 
 class Move:
-    def __init__(self, type, power, physical):
+    def __init__(self, type, power, category):
         self.type = type
         self.power = power
-        self.physical = physical
+        self.category = category
+
+
+def parse_move_text(move):
+    all_stuff = retrieve_data()
+    move_data = None
+    for item in all_stuff:
+        move_name = item.text.split('\n')[0]
+        if move_name == move or move_name.replace(" ", "").replace("-", "").lower() == move:
+            move_data = item
+
+    images = move_data.find_element_by_class_name("typecol").find_elements_by_tag_name("img")
+    type = images[0].get_attribute("alt")
+    category = images[1].get_attribute("alt")
+    power = 0
+
+    if category != "Status":
+        try:
+            power = int(move_data.text.split("\n")[2])
+        except ValueError:
+            pass
+
+
+    return Move(type, power, category)
