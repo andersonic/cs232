@@ -11,6 +11,10 @@ driver = None
 all_pokemon_data = demjson.decode(open('pokemon_data.txt', 'r').read())
 own_team = []
 opponent_team = []
+game_state = {'rocks':False, 'spikes': 0, 'tspikes': 0, 'weather':'none', 'trickroom':False, 'terrain':'none'}
+turn = 0
+own_mon_out = None
+opponent_mon_out = None
 
 
 def open_window(url):
@@ -278,7 +282,7 @@ def parse_opposing_mon():
     moves = handle_list_moves(get_possible_moves(name))
 
     new_mon = Pokemon(name, level, types, moves, None, None, stats[0], stats[0], stats[1:])
-    if not new_mon in opponent_team:
+    if new_mon not in opponent_team:
         opponent_team.append(new_mon)
     return new_mon
 
@@ -378,6 +382,111 @@ def parse_move_text(move):
             power = int(move_data.text.split("\n")[2])
         except ValueError:
             pass
-
-
     return Move(type, power, category)
+
+
+def parse_log(turn_to_parse):
+    """Pre-condition: battle state is up to date until turn_to_parse - 1
+    Post-condition: battle state is up to date. Except it probably misses loads of stuff"""
+
+    # Below is the log-reading method
+    """first_line = 0
+    last_line = 0
+    logs = driver.find_elements_by_class_name("battle-history")
+    logs = [log.text for log in logs]
+    for i in range(0, len(logs)):
+        if logs[i] == "Turn " + str(turn_to_parse):
+            first_line = i
+        if logs[i] == "Turn " + str(turn_to_parse + 1):
+            last_line = i
+
+    relevant_logs = logs[first_line:last_line]
+
+    for log in relevant_logs:
+        if " used " in log:
+            # someone used a move
+            # Do I care?
+            pass
+        elif " lost " in log:
+            # someone lost health, due to being hit or life orb
+            percent = extract_percent(log)
+            if " opposing " in log:
+                # opponent lost health
+                opponent_mon_out.current_health *= percent
+            else:
+                # own pokemon lost health. find percent and multiply
+                own_mon_out.current_health *= percent
+        elif " restored " in log:
+            # someone recovered health
+        elif "Pointed stones dug into " in log:
+            # someone took stealth rocks damage
+            if "the opposing" in log:
+                # opposing mon took rocks damage
+        elif " had its energy drained!" in log:
+            # someone recovered health through draining
+        elif " fainted " in log:
+            # someone fainted
+            # should be detected elsewhere
+            pass
+        elif "Go! " in log:
+            # player send someone out. switch out pokemon
+        elif " sent out " in log:
+            # opponent sent someone out. see if they need to be added to opponent team. switch out mon"""
+
+    update_own_mon()
+
+
+def update_own_mon():
+    statbar = driver.find_element_by_class_name("rstatbar")
+    mon = " ".join(statbar.text.split(" ")[:len(statbar.text.split(" ")) - 1])
+    global own_mon_out
+    try:
+        if own_mon_out.name != mon:
+            for pokemon in own_team:
+                if pokemon.name == mon:
+                    own_mon_out = pokemon
+    except AttributeError:
+        for pokemon in own_team:
+            if pokemon.name == mon:
+                own_mon_out = pokemon
+    hptext = statbar.find_element_by_class_name("hptext").text
+    health_percent = int(hptext[:len(hptext) - 1]) / 100
+    own_mon_out.current_health = own_mon_out.total_health * health_percent
+
+
+def update_opponent():
+    statbar = driver.find_element_by_class_name("lstatbar")
+    mon = " ".join(statbar.text.split(" ")[:len(statbar.text.split(" ")) - 1])
+
+    already_parsed = False
+
+    for pokemon in opponent_team:
+        if mon == pokemon.name:
+            already_parsed = True
+
+    if not already_parsed:
+        global opponent_mon_out
+        opponent_mon_out = parse_opposing_mon()
+    elif opponent_mon_out.name != mon:
+        global opponent_mon_out
+        for pokemon in opponent_team:
+            if mon == pokemon.name:
+                opponent_mon_out = pokemon
+
+    hptext = statbar.find_element_by_class_name("hptext").text
+    health_percent = int(hptext[:len(hptext) - 1]) / 100
+    opponent_mon_out.current_health = opponent_mon_out.total_health * health_percent
+
+
+def extract_percent(text):
+    percent_as_int = 0
+    percent_index = 0
+    for i in range(0, len(text)):
+        if text[i] == "%":
+            percent_index = i
+    for i in range(percent_index - 1, 0, -1):
+        try:
+            percent_as_int += int(text[i]) * 10 ** (percent_index - i - 1)
+        except ValueError:
+            break
+    return percent_as_int / 100
