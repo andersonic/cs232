@@ -151,6 +151,7 @@ def get_own_team():
         hover.perform()
         pokemon_list.append(parse_own_team(driver.find_element_by_id("tooltipwrapper")))
 
+    global own_team
     own_team = pokemon_list
     return pokemon_list
 
@@ -192,7 +193,7 @@ def parse_own_team(element):
 
     for move in moves:
         query_data(move)
-    time.sleep(1)
+    time.sleep(2)
 
     moves = [parse_move_text(i) for i in moves]
 
@@ -247,7 +248,7 @@ def get_possible_moves(name):
 def handle_list_moves(moves):
     for move in moves:
         query_data(move)
-    time.sleep(1)
+    time.sleep(2)
     parsed_moves = [parse_move_text(i) for i in moves]
     return parsed_moves
 
@@ -263,6 +264,10 @@ def parse_opposing_mon():
 
     name_temp = help_text[0].split(" ")
     name = " ".join(name_temp[:len(name_temp) - 1])
+
+    # Handle the Rotoms
+    if "Rotom" in name and "(" in name:
+        name = name[7:len(name) - 1]
 
     level = int(name_temp[len(name_temp) - 1][1:])
 
@@ -462,19 +467,18 @@ def update_opponent():
     mon = " ".join(statbar.text.split(" ")[:len(statbar.text.split(" ")) - 1])
 
     already_parsed = False
+    opp_mon_out = None
 
     for pokemon in opponent_team:
         if mon == pokemon.name:
             already_parsed = True
+            opp_mon_out = pokemon
 
+    global opponent_mon_out
     if not already_parsed:
-        global opponent_mon_out
         opponent_mon_out = parse_opposing_mon()
-    elif opponent_mon_out.name != mon:
-        global opponent_mon_out
-        for pokemon in opponent_team:
-            if mon == pokemon.name:
-                opponent_mon_out = pokemon
+    elif opponent_mon_out is None or opponent_mon_out.name != mon:
+        opponent_mon_out = opp_mon_out
 
     hptext = statbar.find_element_by_class_name("hptext").text
     health_percent = int(hptext[:len(hptext) - 1]) / 100
