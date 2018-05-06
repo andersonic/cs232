@@ -8,8 +8,9 @@
 
 ### To Do
 - COMMENTS
-- Get opposing Pokemon's possible moves
+- Parse battle log to change state
 - Implement rating
 - Implement expectimax
+- Implement PP counting
 - Handle items and abilities (should be done before implementing expectimax unless severe time crunch occurs)
 - Time permitting, implement deep q learning

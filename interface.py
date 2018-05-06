@@ -9,6 +9,8 @@ import demjson
 
 driver = None
 all_pokemon_data = demjson.decode(open('pokemon_data.txt', 'r').read())
+own_team = []
+opponent_team = []
 
 
 def open_window(url):
@@ -145,6 +147,7 @@ def get_own_team():
         hover.perform()
         pokemon_list.append(parse_own_team(driver.find_element_by_id("tooltipwrapper")))
 
+    own_team = pokemon_list
     return pokemon_list
 
 
@@ -153,6 +156,7 @@ def parse_own_team(element):
 
     # Get health
     text = text.split("\n")
+    name = " ".join(text[0].split(" ")[:len(text[0].split(" "))-1])
     level = int(text[0].split(" ")[len(text[0].split(" ")) - 1][1:])
     current_health = int(text[1].split(" ")[2].split("/")[0][1:])
     total_health_text = text[1].split(" ")[2].split("/")[1]
@@ -196,7 +200,7 @@ def parse_own_team(element):
     if len(types) == 1:
         types.append('none')
 
-    return Pokemon(level, types, moves, item, ability, current_health, total_health, stats)
+    return Pokemon(name, level, types, moves, item, ability, current_health, total_health, stats)
 
 
 def query_data(data):
@@ -273,12 +277,15 @@ def parse_opposing_mon():
 
     moves = handle_list_moves(get_possible_moves(name))
 
-    return Pokemon(level, types, moves, None, None, stats[0], stats[0], stats[1:])
-
+    new_mon = Pokemon(name, level, types, moves, None, None, stats[0], stats[0], stats[1:])
+    if not new_mon in opponent_team:
+        opponent_team.append(new_mon)
+    return new_mon
 
 
 class Pokemon:
-    def __init__(self, level, type, moves, item, ability, presenthealth, totalhealth, stats):
+    def __init__(self, name, level, type, moves, item, ability, presenthealth, totalhealth, stats):
+        self.name = name
         self.level = level
         self.type = type
         self.moves = moves
@@ -288,6 +295,13 @@ class Pokemon:
         self.present_health = presenthealth
         self.total_health = totalhealth
         self.health_percent = presenthealth/totalhealth
+
+    def __eq__(self, other):
+        """Note that this definition of equality breaks down when comparing Pokémon on opposite teams"""
+        return self.name == other.name
+
+    def __str__(self):
+        return self.name
 
     def damage_calc(self, enemy_move, enemy_mon):
         rand_number = random.randint(85,100)
@@ -351,7 +365,7 @@ def parse_move_text(move):
     move_data = None
     for item in all_stuff:
         move_name = item.text.split('\n')[0]
-        if move_name == move or move_name.replace(" ", "").lower() == move:
+        if move_name == move or move_name.replace(" ", "").replace("-", "").lower() == move:
             move_data = item
 
     images = move_data.find_element_by_class_name("typecol").find_elements_by_tag_name("img")
