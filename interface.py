@@ -288,7 +288,7 @@ def parse_opposing_mon():
 
 
 class Pokemon:
-    def __init__(self, name, level, type, moves, item, ability, presenthealth, totalhealth, stats):
+    def __init__(self, name, level, type, moves, item, ability, presenthealth, totalhealth, stats, statuses=None):
         self.name = name
         self.level = level
         self.type = type
@@ -299,6 +299,7 @@ class Pokemon:
         self.present_health = presenthealth
         self.total_health = totalhealth
         self.health_percent = presenthealth/totalhealth
+        self.statuses = statuses
 
     def __eq__(self, other):
         """Note that this definition of equality breaks down when comparing Pokémon on opposite teams"""
@@ -434,6 +435,7 @@ def parse_log(turn_to_parse):
             # opponent sent someone out. see if they need to be added to opponent team. switch out mon"""
 
     update_own_mon()
+    update_opponent()
 
 
 def update_own_mon():
@@ -452,6 +454,7 @@ def update_own_mon():
     hptext = statbar.find_element_by_class_name("hptext").text
     health_percent = int(hptext[:len(hptext) - 1]) / 100
     own_mon_out.current_health = own_mon_out.total_health * health_percent
+    update_status(own_mon_out, statbar)
 
 
 def update_opponent():
@@ -476,6 +479,14 @@ def update_opponent():
     hptext = statbar.find_element_by_class_name("hptext").text
     health_percent = int(hptext[:len(hptext) - 1]) / 100
     opponent_mon_out.current_health = opponent_mon_out.total_health * health_percent
+    update_status(opponent_mon_out, statbar)
+
+
+def update_status(pokemon, statbar):
+    status = statbar.find_element_by_class_name("status")
+    statuses = status.find_elements_by_tag_name("span")
+    statuses = [i.text for i in statuses]
+    pokemon.statuses = statuses
 
 
 def extract_percent(text):
