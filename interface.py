@@ -293,18 +293,31 @@ def parse_opposing_mon():
 
 
 class Pokemon:
-    def __init__(self, name, level, type, moves, item, ability, presenthealth, totalhealth, stats, statuses=None):
-        self.name = name
-        self.level = level
-        self.type = type
-        self.moves = moves
-        self.item = item
-        self.ability = ability
-        self.stats = stats
-        self.present_health = presenthealth
-        self.total_health = totalhealth
-        self.health_percent = presenthealth/totalhealth
-        self.statuses = statuses
+    def __init__(self, name=None, level=None, type=None, moves=None, item=None, ability=None, presenthealth=None,
+                 totalhealth=None, stats=None, statuses=None, mon=None):
+        if mon is None:
+            self.name = name
+            self.level = level
+            self.type = type
+            self.moves = moves
+            self.item = item
+            self.ability = ability
+            self.stats = stats
+            self.present_health = presenthealth
+            self.total_health = totalhealth
+            self.health_percent = presenthealth/totalhealth
+            self.statuses = statuses
+        else:
+            # For form changes
+            self.name = name
+            self.level = mon.level
+            self.type = type
+            self.moves = mon.moves
+            self.ability = ability
+            self.presenthealth = mon.presenthealth
+            self.totalhealth = mon.totalhealth
+            self.stat = stats
+            self.statuses = mon.statuses
 
     def __eq__(self, other):
         """Note that this definition of equality breaks down when comparing Pokémon on opposite teams"""
@@ -442,6 +455,21 @@ def parse_log(turn_to_parse):
     update_own_mon()
     update_opponent()
 
+
+def handle_form_change(mon_list, previous_form, infobar):
+    """Pre-condition: previous_form is in mon_list and has undergone a form change. Infobar is the info bar for the
+    new form.
+    Post-condition: the new form replaces the previous form in mon_list, with all statuses up to date"""
+
+    name = " ".join(infobar.text.split(" ")[:len(infobar.text.split(" ")) - 1])
+
+    try:
+        name = name[name.index("(") + 1:name.index[")"]]
+    except ValueError:
+        name
+
+    base_stats = get_base_stats(name)
+    stats = calc_stats(base_stats, previous_form.level)
 
 def update_own_mon():
     statbar = driver.find_element_by_class_name("rstatbar")

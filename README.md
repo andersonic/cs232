@@ -9,6 +9,7 @@
 ### To Do
 - COMMENTS
 - Parse battle log to change state
+- Handle mega evolution/form changes
 - Implement rating
 - Implement expectimax
 - Implement PP counting
