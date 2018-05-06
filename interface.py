@@ -222,7 +222,7 @@ def calc_stats(base_stats, level):
     stats = []
     stats.append(math.floor((31 + 2 * base_stats[0] + 21) * level/100 + 10 + level))
 
-    for i in range(1, 5):
+    for i in range(1, 6):
         stats.append(math.floor((31 + 2 * base_stats[i] + 21) * level/100 + 5))
 
     return stats
@@ -238,6 +238,7 @@ def get_base_stats(mon):
             stat_list = pokemon.find_elements_by_class_name("statcol")
             for stat in stat_list:
                 base_stats.append(int(stat.text.split("\n")[1]))
+            break
     return base_stats
 
 
@@ -264,10 +265,6 @@ def parse_opposing_mon():
 
     name_temp = help_text[0].split(" ")
     name = " ".join(name_temp[:len(name_temp) - 1])
-
-    # Handle the Rotoms
-    if "Rotom" in name and "(" in name:
-        name = name[7:len(name) - 1]
 
     level = int(name_temp[len(name_temp) - 1][1:])
 
@@ -308,7 +305,7 @@ class Pokemon:
             self.health_percent = presenthealth/totalhealth
             self.statuses = statuses
         else:
-            # For form changes
+            # For form changes ????
             self.name = name
             self.level = mon.level
             self.type = type
@@ -327,18 +324,55 @@ class Pokemon:
         return self.name
 
     def damage_calc(self, enemy_move, enemy_mon):
-        rand_number = random.randint(85,100)
+        enemy_stats = enemy_mon.calc_effective_stats
+        my_stats = self.calc_effective_stats()
         damage = 0
         if enemy_move.category == 'Physical':
             damage = \
-                (((2*enemy_mon.level/5 + 2) * enemy_mon.stats[0]*enemy_move.power/self.stats[1])/50 + 2) * 93/100
+                (((2*enemy_mon.level/5 + 2) * enemy_stats[0]*enemy_move.power/my_stats[1])/50 + 2) * 93/100
         elif enemy_move.category == 'Special':
             damage = \
-                (((2*enemy_mon.level/5 + 2) * enemy_mon.stats[2]*enemy_move.power/self.stats[3])/50 + 2) * 93/100
+                (((2*enemy_mon.level/5 + 2) * enemy_stats[2]*enemy_move.power/my_stats[3])/50 + 2) * 93/100
         if enemy_move.type in enemy_mon.type:
             damage *= 1.5
         damage *= self.calculate_type_multiplier(enemy_move.type)
         return damage
+
+    def calc_effective_stats(self):
+        real_stats = []
+        for i in range(0, len(self.stats)):
+            if i == 0:
+                # dealing with attack
+                atk_mod = 1
+                if "BRN" in self.statuses:
+                    atk_mod *= 0.5
+                if "Atk" in self.statuses:
+                    atk_mod *= self.statuses["Atk"]
+                real_stats.append(self.stats[i] * atk_mod)
+            elif i == 1:
+                # dealing with defense
+                try:
+                    real_stats.append(self.stats[i] * self.statuses["Def"])
+                except KeyError:
+                    real_stats.append(self.stats[i])
+            elif i == 2:
+                try:
+                    real_stats.append(self.stats[i] * self.statuses["SpA"])
+                except KeyError:
+                    real_stats.append(self.stats[i])
+            elif i == 3:
+                try:
+                    real_stats.append(self.stats[i] * self.statuses["SpD"])
+                except KeyError:
+                    real_stats.append(self.stats[i])
+            elif i == 4:
+                spe_mod = 1
+                if "PAR" in self.statuses:
+                    spe_mod *= 0.25
+                if "Spe" in self.statuses:
+                    spe_mod *= self.statuses["Spe"]
+                real_stats.append(self.stats[i] * spe_mod)
+        return real_stats
 
     def calculate_type_multiplier(self, move_type):
         type_chart = {
@@ -456,25 +490,11 @@ def parse_log(turn_to_parse):
     update_opponent()
 
 
-def handle_form_change(mon_list, previous_form, infobar):
-    """Pre-condition: previous_form is in mon_list and has undergone a form change. Infobar is the info bar for the
-    new form.
-    Post-condition: the new form replaces the previous form in mon_list, with all statuses up to date"""
-
-    name = " ".join(infobar.text.split(" ")[:len(infobar.text.split(" ")) - 1])
-
-    try:
-        name = name[name.index("(") + 1:name.index[")"]]
-    except ValueError:
-        name
-
-    base_stats = get_base_stats(name)
-    stats = calc_stats(base_stats, previous_form.level)
-
 def update_own_mon():
     statbar = driver.find_element_by_class_name("rstatbar")
     mon = " ".join(statbar.text.split(" ")[:len(statbar.text.split(" ")) - 1])
     global own_mon_out
+
     try:
         if own_mon_out.name != mon:
             for pokemon in own_team:
@@ -518,7 +538,14 @@ def update_status(pokemon, statbar):
     status = statbar.find_element_by_class_name("status")
     statuses = status.find_elements_by_tag_name("span")
     statuses = [i.text for i in statuses]
-    pokemon.statuses = statuses
+    stat_dict = {}
+    for s in statuses:
+        try:
+            text = s.split(" ")
+            stat_dict[text[1]] = float(text[0][:len(text[0]) - 1])
+        except ValueError:
+            stat_dict[s] = True
+    pokemon.statuses = stat_dict
 
 
 def extract_percent(text):

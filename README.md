@@ -10,6 +10,7 @@
 - COMMENTS
 - Parse battle log to change state
 - Handle mega evolution/form changes
+- Handle stat buffs/debuffs to stats
 - Implement rating
 - Implement expectimax
 - Implement PP counting
