@@ -17,6 +17,8 @@ own_mon_out = None
 opponent_mon_out = None
 
 
+
+
 def open_window(url):
     my_dir = os.path.dirname(__file__)
     chrome_path = os.path.join(my_dir, 'chromedriver')
@@ -564,13 +566,3 @@ def extract_percent(text):
         except ValueError:
             break
     return percent_as_int / 100
-
-
-def make_health_difference_matrix():
-    health_matrix = [[None for j in range(0,6)] for i in range(0,6)]
-    for i in health_matrix:
-        for j in health_matrix[i]:
-            try:
-                health_matrix[i][j] = own_team[i].get_health_percent() - opponent_team[j].get_health_percent()
-            except IndexError:
-                health_matrix[i][j] = own_team[i].get_health_percent() - 1
