@@ -5,7 +5,6 @@ import time
 
 """Plays randbats randomly, with a set probability to switch. Does not store game state,
 as the game state does not affect its actions."""
-""" implements tree """
 
 
 def start():

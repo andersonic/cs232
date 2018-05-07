@@ -9,7 +9,7 @@ as the game state does not affect its actions."""
 
 def start():
     i.open_window("https://play.pokemonshowdown.com")
-    i.log_in("cs232-test-2", "cs232")
+    i.log_in("cs232-test-2", "cs232") #only test 1 or test 2 not 3 (bc random)
 
 
 def random_switch():
@@ -59,6 +59,8 @@ def calc_switch_and_move():
          if current_mon == sortedRunnerUps[0]:
              #yes, our best pokemon is out in the field
              print("pokemon is the best on the field--> attack")
+             i.update_own_mon
+             i.update_opponent
              i.act(move)
          else: 
              #no, our best pokemon is not on the field
@@ -215,11 +217,11 @@ def feist():
         try:
             try:
                 i.driver.find_element_by_class_name("movemenu")
-                random_action(switch_prob)
+               
             except common.exceptions.NoSuchElementException:
                 try:
                     i.driver.find_element_by_class_name("switchmenu")
-                    random_action(switch_prob)
+                    
                 except:
                     pass
 

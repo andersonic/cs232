@@ -1,3 +1,4 @@
+# -*- coding: cp1252 -*-
 from selenium import webdriver, common
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
@@ -5,10 +6,12 @@ import random
 import math
 import time
 import os
-import demjson
+import json
 
 driver = None
-all_pokemon_data = demjson.decode(open('pokemon_data.txt', 'r').read())
+#all_pokemon_data = json.parse(open('pokemon_data.txt', 'r').read())
+with open('pokemon_data.txt') as r:
+    all_pokemon_data = json.load(r)
 own_team = []
 opponent_team = []
 
@@ -69,6 +72,8 @@ def find_randbat():
 
 
 def act(action, switch=False):
+    update_own_mon
+    update_opponent
     if switch:
         pokemon_buttons = driver.find_elements_by_name("chooseSwitch")
         for pokemon in pokemon_buttons:
@@ -130,7 +135,7 @@ def get_switch_options():
 
 
 def get_own_team():
-    """Precondition: first turn. Returns all Pokémon, including stats, moves and items."""
+    """Precondition: first turn. Returns all Pokemon, including stats, moves and items."""
 
     pokemon_list = []
 
@@ -147,7 +152,7 @@ def get_own_team():
         hover.perform()
         pokemon_list.append(parse_own_team(driver.find_element_by_id("tooltipwrapper")))
 
-    own_team = pokemon_list
+  
     return pokemon_list
 
 
