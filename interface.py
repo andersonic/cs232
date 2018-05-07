@@ -236,11 +236,14 @@ def get_base_stats(mon):
     all_mons = retrieve_data()
     base_stats = []
     for pokemon in all_mons:
-        if pokemon.text.split('\n')[1] == mon:
-            stat_list = pokemon.find_elements_by_class_name("statcol")
-            for stat in stat_list:
-                base_stats.append(int(stat.text.split("\n")[1]))
-            break
+        try:
+            if pokemon.text.split('\n')[1] == mon:
+                stat_list = pokemon.find_elements_by_class_name("statcol")
+                for stat in stat_list:
+                    base_stats.append(int(stat.text.split("\n")[1]))
+                break
+        except IndexError:
+            pass
     return base_stats
 
 
@@ -293,7 +296,7 @@ def parse_opposing_mon():
 
 class Pokemon:
     def __init__(self, name=None, level=None, type=None, moves=None, item=None, ability=None, presenthealth=None,
-                 totalhealth=None, stats=None, statuses=None, mon=None):
+                 totalhealth=None, stats=None, statuses={}, mon=None):
         if mon is None:
             self.name = name
             self.level = level
@@ -330,7 +333,7 @@ class Pokemon:
         return self.name
 
     def damage_calc(self, enemy_move, enemy_mon):
-        enemy_stats = enemy_mon.calc_effective_stats
+        enemy_stats = enemy_mon.calc_effective_stats()
         my_stats = self.calc_effective_stats()
         damage = 0
         if enemy_move.category == 'Physical':
@@ -512,7 +515,7 @@ def update_own_mon():
                 own_mon_out = pokemon
     hptext = statbar.find_element_by_class_name("hptext").text
     health_percent = int(hptext[:len(hptext) - 1]) / 100
-    own_mon_out.current_health = own_mon_out.total_health * health_percent
+    own_mon_out.present_health = own_mon_out.total_health * health_percent
     update_status(own_mon_out, statbar)
 
 
@@ -536,7 +539,7 @@ def update_opponent():
 
     hptext = statbar.find_element_by_class_name("hptext").text
     health_percent = int(hptext[:len(hptext) - 1]) / 100
-    opponent_mon_out.current_health = opponent_mon_out.total_health * health_percent
+    opponent_mon_out.present_health = opponent_mon_out.total_health * health_percent
     update_status(opponent_mon_out, statbar)
 
 
