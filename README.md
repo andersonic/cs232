@@ -11,6 +11,7 @@
 - COMMENTS
 - Handle pursuit/volt switch/uturn/momento/lunar dance/healing wish
 - Handle mega evolution/form changes
+- make update functions not die if one pokemon has fainted
 - Implement rating
 - Implement expectimax
 - Implement PP counting

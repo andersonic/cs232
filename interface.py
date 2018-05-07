@@ -311,10 +311,14 @@ class Pokemon:
             self.type = type
             self.moves = mon.moves
             self.ability = ability
-            self.presenthealth = mon.presenthealth
-            self.totalhealth = mon.totalhealth
+            self.present_health = mon.presenthealth
+            self.total_health = mon.totalhealth
             self.stat = stats
             self.statuses = mon.statuses
+
+    def get_health_percent(self):
+        self.health_percent = self.present_health/self.total_health
+        return self.health_percent
 
     def __eq__(self, other):
         """Note that this definition of equality breaks down when comparing Pokémon on opposite teams"""
@@ -560,3 +564,13 @@ def extract_percent(text):
         except ValueError:
             break
     return percent_as_int / 100
+
+
+def make_health_difference_matrix():
+    health_matrix = [[None for j in range(0,6)] for i in range(0,6)]
+    for i in health_matrix:
+        for j in health_matrix[i]:
+            try:
+                health_matrix[i][j] = own_team[i].get_health_percent() - opponent_team[j].get_health_percent()
+            except IndexError:
+                health_matrix[i][j] = own_team[i].get_health_percent() - 1
