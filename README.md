@@ -5,12 +5,14 @@
 - accessing opposing Pokémon now possible
 - Get data on both your moves and their moves using /data, and create move instances
 - check that damage calculation works
+- Handle stat buffs/debuffs to stats
 
 ### To Do
 - COMMENTS
-- Parse battle log to change state
+- Handle pursuit/volt switch/uturn/momento/lunar dance/healing wish
+- Handle mega evolution/form changes
+- make update functions not die if one pokemon has fainted
 - Implement rating
 - Implement expectimax
 - Implement PP counting
 - Handle items and abilities (should be done before implementing expectimax unless severe time crunch occurs)
-- Time permitting, implement deep q learning

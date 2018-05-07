@@ -11,6 +11,12 @@ driver = None
 all_pokemon_data = demjson.decode(open('pokemon_data.txt', 'r').read())
 own_team = []
 opponent_team = []
+game_state = {'rocks':False, 'spikes': 0, 'tspikes': 0, 'weather':'none', 'trickroom':False, 'terrain':'none'}
+turn = 0
+own_mon_out = None
+opponent_mon_out = None
+
+
 
 
 def open_window(url):
@@ -147,6 +153,7 @@ def get_own_team():
         hover.perform()
         pokemon_list.append(parse_own_team(driver.find_element_by_id("tooltipwrapper")))
 
+    global own_team
     own_team = pokemon_list
     return pokemon_list
 
@@ -188,7 +195,7 @@ def parse_own_team(element):
 
     for move in moves:
         query_data(move)
-    time.sleep(1)
+    time.sleep(2)
 
     moves = [parse_move_text(i) for i in moves]
 
@@ -217,7 +224,7 @@ def calc_stats(base_stats, level):
     stats = []
     stats.append(math.floor((31 + 2 * base_stats[0] + 21) * level/100 + 10 + level))
 
-    for i in range(1, 5):
+    for i in range(1, 6):
         stats.append(math.floor((31 + 2 * base_stats[i] + 21) * level/100 + 5))
 
     return stats
@@ -229,10 +236,14 @@ def get_base_stats(mon):
     all_mons = retrieve_data()
     base_stats = []
     for pokemon in all_mons:
-        if pokemon.text.split('\n')[1] == mon:
-            stat_list = pokemon.find_elements_by_class_name("statcol")
-            for stat in stat_list:
-                base_stats.append(int(stat.text.split("\n")[1]))
+        try:
+            if pokemon.text.split('\n')[1] == mon:
+                stat_list = pokemon.find_elements_by_class_name("statcol")
+                for stat in stat_list:
+                    base_stats.append(int(stat.text.split("\n")[1]))
+                break
+        except IndexError:
+            pass
     return base_stats
 
 
@@ -243,7 +254,7 @@ def get_possible_moves(name):
 def handle_list_moves(moves):
     for move in moves:
         query_data(move)
-    time.sleep(1)
+    time.sleep(2)
     parsed_moves = [parse_move_text(i) for i in moves]
     return parsed_moves
 
@@ -278,23 +289,41 @@ def parse_opposing_mon():
     moves = handle_list_moves(get_possible_moves(name))
 
     new_mon = Pokemon(name, level, types, moves, None, None, stats[0], stats[0], stats[1:])
-    if not new_mon in opponent_team:
+    if new_mon not in opponent_team:
         opponent_team.append(new_mon)
     return new_mon
 
 
 class Pokemon:
-    def __init__(self, name, level, type, moves, item, ability, presenthealth, totalhealth, stats):
-        self.name = name
-        self.level = level
-        self.type = type
-        self.moves = moves
-        self.item = item
-        self.ability = ability
-        self.stats = stats
-        self.present_health = presenthealth
-        self.total_health = totalhealth
-        self.health_percent = presenthealth/totalhealth
+    def __init__(self, name=None, level=None, type=None, moves=None, item=None, ability=None, presenthealth=None,
+                 totalhealth=None, stats=None, statuses={}, mon=None):
+        if mon is None:
+            self.name = name
+            self.level = level
+            self.type = type
+            self.moves = moves
+            self.item = item
+            self.ability = ability
+            self.stats = stats
+            self.present_health = presenthealth
+            self.total_health = totalhealth
+            self.health_percent = presenthealth/totalhealth
+            self.statuses = statuses
+        else:
+            # For form changes ????
+            self.name = name
+            self.level = mon.level
+            self.type = type
+            self.moves = mon.moves
+            self.ability = ability
+            self.present_health = mon.presenthealth
+            self.total_health = mon.totalhealth
+            self.stat = stats
+            self.statuses = mon.statuses
+
+    def get_health_percent(self):
+        self.health_percent = self.present_health/self.total_health
+        return self.health_percent
 
     def __eq__(self, other):
         """Note that this definition of equality breaks down when comparing Pokémon on opposite teams"""
@@ -304,18 +333,55 @@ class Pokemon:
         return self.name
 
     def damage_calc(self, enemy_move, enemy_mon):
-        rand_number = random.randint(85,100)
+        enemy_stats = enemy_mon.calc_effective_stats()
+        my_stats = self.calc_effective_stats()
         damage = 0
         if enemy_move.category == 'Physical':
             damage = \
-                (((2*enemy_mon.level/5 + 2) * enemy_mon.stats[0]*enemy_move.power/self.stats[1])/50 + 2) * 93/100
+                (((2*enemy_mon.level/5 + 2) * enemy_stats[0]*enemy_move.power/my_stats[1])/50 + 2) * 93/100
         elif enemy_move.category == 'Special':
             damage = \
-                (((2*enemy_mon.level/5 + 2) * enemy_mon.stats[2]*enemy_move.power/self.stats[3])/50 + 2) * 93/100
+                (((2*enemy_mon.level/5 + 2) * enemy_stats[2]*enemy_move.power/my_stats[3])/50 + 2) * 93/100
         if enemy_move.type in enemy_mon.type:
             damage *= 1.5
         damage *= self.calculate_type_multiplier(enemy_move.type)
         return damage
+
+    def calc_effective_stats(self):
+        real_stats = []
+        for i in range(0, len(self.stats)):
+            if i == 0:
+                # dealing with attack
+                atk_mod = 1
+                if "BRN" in self.statuses:
+                    atk_mod *= 0.5
+                if "Atk" in self.statuses:
+                    atk_mod *= self.statuses["Atk"]
+                real_stats.append(self.stats[i] * atk_mod)
+            elif i == 1:
+                # dealing with defense
+                try:
+                    real_stats.append(self.stats[i] * self.statuses["Def"])
+                except KeyError:
+                    real_stats.append(self.stats[i])
+            elif i == 2:
+                try:
+                    real_stats.append(self.stats[i] * self.statuses["SpA"])
+                except KeyError:
+                    real_stats.append(self.stats[i])
+            elif i == 3:
+                try:
+                    real_stats.append(self.stats[i] * self.statuses["SpD"])
+                except KeyError:
+                    real_stats.append(self.stats[i])
+            elif i == 4:
+                spe_mod = 1
+                if "PAR" in self.statuses:
+                    spe_mod *= 0.25
+                if "Spe" in self.statuses:
+                    spe_mod *= self.statuses["Spe"]
+                real_stats.append(self.stats[i] * spe_mod)
+        return real_stats
 
     def calculate_type_multiplier(self, move_type):
         type_chart = {
@@ -378,6 +444,128 @@ def parse_move_text(move):
             power = int(move_data.text.split("\n")[2])
         except ValueError:
             pass
-
-
     return Move(type, power, category)
+
+
+def parse_log(turn_to_parse):
+    """Pre-condition: battle state is up to date until turn_to_parse - 1
+    Post-condition: battle state is up to date. Except it probably misses loads of stuff"""
+
+    # Below is the log-reading method
+    """first_line = 0
+    last_line = 0
+    logs = driver.find_elements_by_class_name("battle-history")
+    logs = [log.text for log in logs]
+    for i in range(0, len(logs)):
+        if logs[i] == "Turn " + str(turn_to_parse):
+            first_line = i
+        if logs[i] == "Turn " + str(turn_to_parse + 1):
+            last_line = i
+
+    relevant_logs = logs[first_line:last_line]
+
+    for log in relevant_logs:
+        if " used " in log:
+            # someone used a move
+            # Do I care?
+            pass
+        elif " lost " in log:
+            # someone lost health, due to being hit or life orb
+            percent = extract_percent(log)
+            if " opposing " in log:
+                # opponent lost health
+                opponent_mon_out.current_health *= percent
+            else:
+                # own pokemon lost health. find percent and multiply
+                own_mon_out.current_health *= percent
+        elif " restored " in log:
+            # someone recovered health
+        elif "Pointed stones dug into " in log:
+            # someone took stealth rocks damage
+            if "the opposing" in log:
+                # opposing mon took rocks damage
+        elif " had its energy drained!" in log:
+            # someone recovered health through draining
+        elif " fainted " in log:
+            # someone fainted
+            # should be detected elsewhere
+            pass
+        elif "Go! " in log:
+            # player send someone out. switch out pokemon
+        elif " sent out " in log:
+            # opponent sent someone out. see if they need to be added to opponent team. switch out mon"""
+
+    update_own_mon()
+    update_opponent()
+
+
+def update_own_mon():
+    statbar = driver.find_element_by_class_name("rstatbar")
+    mon = " ".join(statbar.text.split(" ")[:len(statbar.text.split(" ")) - 1])
+    global own_mon_out
+
+    try:
+        if own_mon_out.name != mon:
+            for pokemon in own_team:
+                if pokemon.name == mon:
+                    own_mon_out = pokemon
+    except AttributeError:
+        for pokemon in own_team:
+            if pokemon.name == mon:
+                own_mon_out = pokemon
+    hptext = statbar.find_element_by_class_name("hptext").text
+    health_percent = int(hptext[:len(hptext) - 1]) / 100
+    own_mon_out.present_health = own_mon_out.total_health * health_percent
+    update_status(own_mon_out, statbar)
+
+
+def update_opponent():
+    statbar = driver.find_element_by_class_name("lstatbar")
+    mon = " ".join(statbar.text.split(" ")[:len(statbar.text.split(" ")) - 1])
+
+    already_parsed = False
+    opp_mon_out = None
+
+    for pokemon in opponent_team:
+        if mon == pokemon.name:
+            already_parsed = True
+            opp_mon_out = pokemon
+
+    global opponent_mon_out
+    if not already_parsed:
+        opponent_mon_out = parse_opposing_mon()
+    elif opponent_mon_out is None or opponent_mon_out.name != mon:
+        opponent_mon_out = opp_mon_out
+
+    hptext = statbar.find_element_by_class_name("hptext").text
+    health_percent = int(hptext[:len(hptext) - 1]) / 100
+    opponent_mon_out.present_health = opponent_mon_out.total_health * health_percent
+    update_status(opponent_mon_out, statbar)
+
+
+def update_status(pokemon, statbar):
+    status = statbar.find_element_by_class_name("status")
+    statuses = status.find_elements_by_tag_name("span")
+    statuses = [i.text for i in statuses]
+    stat_dict = {}
+    for s in statuses:
+        try:
+            text = s.split(" ")
+            stat_dict[text[1]] = float(text[0][:len(text[0]) - 1])
+        except ValueError:
+            stat_dict[s] = True
+    pokemon.statuses = stat_dict
+
+
+def extract_percent(text):
+    percent_as_int = 0
+    percent_index = 0
+    for i in range(0, len(text)):
+        if text[i] == "%":
+            percent_index = i
+    for i in range(percent_index - 1, 0, -1):
+        try:
+            percent_as_int += int(text[i]) * 10 ** (percent_index - i - 1)
+        except ValueError:
+            break
+    return percent_as_int / 100
