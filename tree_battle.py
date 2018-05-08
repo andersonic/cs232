@@ -11,12 +11,10 @@ def start():
     i.open_window("https://play.pokemonshowdown.com")
     i.log_in("cs232-test-2", "cs232") #only test 1 or test 2 not 3 (bc random)
 
-
 def random_switch():
     options = i.get_switch_options()
     selection = options[random.randint(0, len(options) - 1)]
     i.act(selection, True)
-
 
 def random_move():
     options = i.get_move_options()
@@ -90,7 +88,7 @@ def calc_switch_and_move():
                 print("pokemon is not best on battle field--> best pokemon not in danger of knockout"
                 + "-->switch to best pokemon")
                 calc_switch(best_mon)
-            
+    
 
 def calc_max_damage(options):
     
@@ -116,7 +114,7 @@ def calc_switch(mon):
     selection = options.index(mon)
     i.act(selection, True)
     
-    
+
 # Function to do insertion sort. sorts pokemon by their best move/damage
 def insertionSort_pokemon(team):
     result = []
@@ -210,7 +208,7 @@ def random_action():
 
 
 def feist():
-    switch_prob = 30
+    
     battle_over = False
 
     while not battle_over:
