@@ -503,22 +503,33 @@ def update():
             first_line = i
     logs = logs[first_line:]
 
-    i_fainted = False
-    you_fainted = False
+    my_fainted_mon = None
+    your_fainted_mon = None
     for log in logs:
         if " fainted!" and " opposing " in log:
-            you_fainted = True
+            # An opposing Pokémon has fainted
+            name = log.split(" ")[2]
+            for mon in opponent_team:
+                if mon.name == name:
+                    your_fainted_mon = mon
+            # Harder because you might send an unrevealed mon in to die right away
         elif " fainted!" in log:
-            i_fainted = True
+            # One of your Pokémon has fainted
+            name = log.split(" ")[0]
+            for mon in own_team:
+                if mon.name == name:
+                    my_fainted_mon = mon
+            assert my_fainted_mon is not None
 
-    if you_fainted:
-        opponent_mon_out.present_health = 0
-    if i_fainted:
-        own_mon_out.present_health = 0
+    if your_fainted_mon is not None:
+        your_fainted_mon.present_health = 0
+        if my_fainted_mon is None:
+            update_opponent()
+    if my_fainted_mon is not None:
+        my_fainted_mon.present_health = 0
     else:
         update_own_mon()
 
-    update_opponent()
 
 
 def update_own_mon():
