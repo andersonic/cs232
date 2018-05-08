@@ -5,6 +5,7 @@ import time
 
 """Plays randbats randomly, with a set probability to switch. Does not store game state,
 as the game state does not affect its actions."""
+""" implements tree """
 
 
 def start():
@@ -13,16 +14,12 @@ def start():
 
 
 def random_switch():
-    i.update_own_mon()
-    i.update_opponent()
     options = i.get_switch_options()
     selection = options[random.randint(0, len(options) - 1)]
     i.act(selection, True)
 
 
 def random_move():
-    i.update_own_mon()
-    i.update_opponent()
     options = i.get_move_options()
     selection = options[random.randint(0, len(options) - 1)]
     i.act(selection)
@@ -32,8 +29,7 @@ def random_action(prob=30):
     switch_prob = prob
     switch_allowed = True
     move_allowed = True
-    i.update_own_mon()
-    i.update_opponent()
+
     try:
         i.driver.find_element_by_class_name("switchmenu")
     except common.exceptions.NoSuchElementException:
@@ -61,7 +57,6 @@ def random_action(prob=30):
 
 
 def feist():
-    print("entered FEIST")
     switch_prob = 30
     battle_over = False
 

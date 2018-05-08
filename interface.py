@@ -67,7 +67,7 @@ def log_in(username, password):
 
 def start():
     open_window("https://play.pokemonshowdown.com")
-    log_in("cs232-test-2", "cs232")
+    log_in("cs232-test-1", "cs232")
 
 
 def find_randbat():
@@ -75,7 +75,7 @@ def find_randbat():
 
 
 def act(action, switch=False):
-    
+    """Take an action (a move name or a Pokémon name) as a parameter and whether the action is a switch."""
     if switch:
         pokemon_buttons = driver.find_elements_by_name("chooseSwitch")
         for pokemon in pokemon_buttons:
@@ -448,8 +448,8 @@ def parse_move_text(move):
     return Move(type, power, category)
 
 
-def parse_log(turn_to_parse):
-    """Pre-condition: battle state is up to date until turn_to_parse - 1
+def update():
+    """Pre-condition: battle state is up to date until turn_to_parse - 1.
     Post-condition: battle state is up to date. Except it probably misses loads of stuff"""
 
     # Below is the log-reading method
@@ -494,28 +494,67 @@ def parse_log(turn_to_parse):
         elif " sent out " in log:
             # opponent sent someone out. see if they need to be added to opponent team. switch out mon"""
 
-    update_own_mon()
-    update_opponent()
+    first_line = 0
+    logs = [log.text for log in driver.find_elements_by_class_name("battle-history")]
+    turns = [log for log in logs if "Turn " in log]
+    most_recent_turn = turns[len(turns) - 1]
+    for i in range(0, len(logs)):
+        if logs[i] == most_recent_turn:
+            first_line = i
+    logs = logs[first_line:]
+
+    my_fainted_mon = None
+    your_fainted_mon = None
+    for log in logs:
+        if " fainted!" and " opposing " in log:
+            # An opposing Pokémon has fainted
+            name = log.split(" ")[2]
+            for mon in opponent_team:
+                if mon.name == name:
+                    your_fainted_mon = mon
+            # Harder because you might send an unrevealed mon in to die right away
+        elif " fainted!" in log:
+            # One of your Pokémon has fainted
+            name = log.split(" ")[0]
+            for mon in own_team:
+                if mon.name == name:
+                    my_fainted_mon = mon
+            assert my_fainted_mon is not None
+
+    if your_fainted_mon is not None:
+        your_fainted_mon.present_health = 0
+        if my_fainted_mon is None:
+            update_opponent()
+    if my_fainted_mon is not None:
+        my_fainted_mon.present_health = 0
+    else:
+        update_own_mon()
+
 
 
 def update_own_mon():
-    statbar = driver.find_element_by_class_name("rstatbar")
-    mon = " ".join(statbar.text.split(" ")[:len(statbar.text.split(" ")) - 1])
-    global own_mon_out
-
     try:
-        if own_mon_out.name != mon:
+        statbar = driver.find_element_by_class_name("rstatbar")
+        mon = " ".join(statbar.text.split(" ")[:len(statbar.text.split(" ")) - 1])
+        global own_mon_out
+
+        try:
+            if own_mon_out.name != mon:
+                for pokemon in own_team:
+                    if pokemon.name == mon:
+                        own_mon_out = pokemon
+        except AttributeError:
             for pokemon in own_team:
                 if pokemon.name == mon:
                     own_mon_out = pokemon
-    except AttributeError:
-        for pokemon in own_team:
-            if pokemon.name == mon:
-                own_mon_out = pokemon
-    hptext = statbar.find_element_by_class_name("hptext").text
-    health_percent = int(hptext[:len(hptext) - 1]) / 100
-    own_mon_out.present_health = own_mon_out.total_health * health_percent
-    update_status(own_mon_out, statbar)
+        hptext = statbar.find_element_by_class_name("hptext").text
+        health_percent = int(hptext[:len(hptext) - 1]) / 100
+        own_mon_out.present_health = own_mon_out.total_health * health_percent
+        update_status(own_mon_out, statbar)
+    except common.exceptions.NoSuchElementException:
+        # Your Pokémon is not there, either because it fainted or because you have used a switching move
+        # For now, assume it is due to fainting
+        own_mon_out.present_health = 0
 
 
 def update_opponent():
@@ -529,11 +568,11 @@ def update_opponent():
         if mon == pokemon.name:
             already_parsed = True
             opp_mon_out = pokemon
-
+    
     global opponent_mon_out
     if not already_parsed:
         opponent_mon_out = parse_opposing_mon()
-    elif opponent_mon_out is None or opponent_mon_out.name != mon:
+    elif opponent_mon_out == None or opponent_mon_out.name != mon:
         opponent_mon_out = opp_mon_out
 
     hptext = statbar.find_element_by_class_name("hptext").text

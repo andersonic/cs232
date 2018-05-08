@@ -22,13 +22,17 @@ def random_move():
     i.act(selection)
 
 def calc_switch_and_move():
-    i.update_own_mon()
-    i.update_opponent()
-    print("haha we got here")
+    
+    print("We are in calc_switch_and_move")
     options = i.get_move_options()
-
-    sortedRunnerUps = insertionSort_pokemon(i.own_team)
+    i.update()
     opponentMoves = i.opponent_mon_out.moves
+    print("opponent Pokemon: " + i.opponent_mon_out)
+    print("opponent moves: " + opponentMoves)
+    #i.update_own_mon()
+    
+    sortedRunnerUps = insertionSort_pokemon(i.own_team)
+    
     
     current_mon = i.own_mon_out
     move = calc_max_damage(options)[0] #get our pokemon's best move
@@ -61,8 +65,8 @@ def calc_switch_and_move():
          if current_mon == sortedRunnerUps[0]:
              #yes, our best pokemon is out in the field
              print("pokemon is the best on the field--> attack")
-             i.update_own_mon
-             i.update_opponent
+             #i.update_own_mon
+             #i.update_opponent
              i.act(move)
          else: 
              #no, our best pokemon is not on the field
@@ -173,7 +177,7 @@ def has_heal(options):
 def random_action():
     switch_allowed = True
     move_allowed = True
-    print("WE ARE IN RANDOM_ACTION")
+    print("now in: RANDOM_ACTION")
     try:
         i.driver.find_element_by_class_name("switchmenu")
     except common.exceptions.NoSuchElementException:
@@ -183,12 +187,11 @@ def random_action():
         i.driver.find_element_by_class_name("movemenu")
     except common.exceptions.NoSuchElementException:
         move_allowed = False
-
-    print("WE ARE IN RANDOM_ACTION")
     # if switches and moves are allowed, use decision tree. otherwise, random
     # move so program doesn't crash
     if switch_allowed and move_allowed:
         try:
+            print("in random_action: going to calc_switch_and_move")
             calc_switch_and_move()
         except ValueError:
             random_move()
@@ -196,6 +199,7 @@ def random_action():
             print("Decision tree did not work. Pokemon used a random move")
             random_move()
     elif switch_allowed:
+        print("in random_action: only switches allowed. calculating switch")
         sortedRunnerUps = insertionSort_pokemon(i.own_team)
         options = i.get_switch_options()
         # if we are the best pokemon, switch to next best. else, to best
@@ -206,6 +210,7 @@ def random_action():
             
     elif move_allowed:
         #find our pokemon's best damage move and use it
+        print("in random_action: only moves allowed. calculating move")
         options = i.get_move_options()
         bestMove, bestDamage = calc_max_damage(options)
         i.act(bestMove)
@@ -214,19 +219,19 @@ def random_action():
 
 
 def feist():
-    switch_prob = 30
+    
     battle_over = False
     print("WE ARE IN FEIST")
     while not battle_over:
         try:
             try:
                 i.driver.find_element_by_class_name("movemenu")
-                print("we called RANDOM_ACTION")
-                random_action(switch_prob)
+                print("in feist: call random_action")
+                random_action()
             except common.exceptions.NoSuchElementException:
                 try:
                     i.driver.find_element_by_class_name("switchmenu")
-                    random_action(switch_prob)
+                    random_action()
                 except:
                     pass
 
