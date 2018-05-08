@@ -9,7 +9,7 @@ import demjson
 driver = None
 all_pokemon_data = demjson.decode(open('pokemon_data.txt', 'r').read())
 own_team = []
-opponent_team = []
+opponent_team = [None, None, None, None, None, None]
 game_state = {'rocks':False, 'spikes': 0, 'tspikes': 0, 'weather':'none', 'trickroom':False, 'terrain':'none'}
 turn = 0
 own_mon_out = None
@@ -289,7 +289,9 @@ def parse_opposing_mon():
 
     new_mon = Pokemon(name, level, types, moves, None, None, stats[0], stats[0], stats[1:])
     if new_mon not in opponent_team:
-        opponent_team.append(new_mon)
+        for i in range(0, len(opponent_team)):
+            if opponent_team[i] is None:
+                opponent_team[i] = new_mon
     return new_mon
 
 
@@ -419,10 +421,14 @@ class Pokemon:
 
 
 class Move:
-    def __init__(self, type, power, category):
+    def __init__(self, type, power, category, text=None):
         self.type = type
         self.power = power
         self.category = category
+        self.text = text
+
+    def __eq__(self, other):
+        return self.type == other.type and self.power == other.power and self.category == other.category
 
 
 def parse_move_text(move):
@@ -529,7 +535,6 @@ def update():
         my_fainted_mon.present_health = 0
     else:
         update_own_mon()
-
 
 
 def update_own_mon():

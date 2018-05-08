@@ -9,5 +9,6 @@
 - Handle pursuit/volt switch/uturn/momento/lunar dance/healing wish
 - Handle fringe cases in fainting
 - Handle mega evolution/form changes
+- When Pokémon switch out, remove stat changes
 - Implement expectimax
 - Handle items and abilities
