@@ -67,7 +67,7 @@ def log_in(username, password):
 
 def start():
     open_window("https://play.pokemonshowdown.com")
-    log_in("cs232-test-1", "cs232")
+    log_in("cs232-test-2", "cs232")
 
 
 def find_randbat():
@@ -75,6 +75,8 @@ def find_randbat():
 
 
 def act(action, switch=False):
+    update_own_mon()
+    update_opponent()
     if switch:
         pokemon_buttons = driver.find_elements_by_name("chooseSwitch")
         for pokemon in pokemon_buttons:

@@ -22,6 +22,9 @@ def random_move():
     i.act(selection)
 
 def calc_switch_and_move():
+    i.update_own_mon()
+    i.update_opponent()
+    print("haha we got here")
     options = i.get_move_options()
 
     sortedRunnerUps = insertionSort_pokemon(i.own_team)
@@ -30,9 +33,10 @@ def calc_switch_and_move():
     current_mon = i.own_mon_out
     move = calc_max_damage(options)[0] #get our pokemon's best move
     
-    
+    print("WE ARE OUTSIDE THE LOOP")
     if calc_danger_of_knockout(opponentMoves,current_mon):
         #yes, danger of knockout
+        print("WE ARE INSIDE THE LOOP, IF")
         if current_mon.health_percent == 1:
             # if we are at full health and are the best pokemon, switch to next best
             if current_mon == sortedRunnerUps[0]:
@@ -53,7 +57,7 @@ def calc_switch_and_move():
                 i.act(move) #act based on best move
     else:
         #NO, we are not in danger of knockout. does our pokemon do the most damage?
-         
+         print("WE ARE INSIDE THE LOOP, ELSE")
          if current_mon == sortedRunnerUps[0]:
              #yes, our best pokemon is out in the field
              print("pokemon is the best on the field--> attack")
@@ -88,7 +92,8 @@ def calc_switch_and_move():
                 print("pokemon is not best on battle field--> best pokemon not in danger of knockout"
                 + "-->switch to best pokemon")
                 calc_switch(best_mon)
-    
+    print("random move: we didn't get anywhere in the tree")
+    random_move()
 
 def calc_max_damage(options):
     
@@ -168,7 +173,7 @@ def has_heal(options):
 def random_action():
     switch_allowed = True
     move_allowed = True
-
+    print("WE ARE IN RANDOM_ACTION")
     try:
         i.driver.find_element_by_class_name("switchmenu")
     except common.exceptions.NoSuchElementException:
@@ -179,6 +184,7 @@ def random_action():
     except common.exceptions.NoSuchElementException:
         move_allowed = False
 
+    print("WE ARE IN RANDOM_ACTION")
     # if switches and moves are allowed, use decision tree. otherwise, random
     # move so program doesn't crash
     if switch_allowed and move_allowed:
@@ -208,18 +214,19 @@ def random_action():
 
 
 def feist():
-    
+    switch_prob = 30
     battle_over = False
-
+    print("WE ARE IN FEIST")
     while not battle_over:
         try:
             try:
                 i.driver.find_element_by_class_name("movemenu")
-               
+                print("we called RANDOM_ACTION")
+                random_action(switch_prob)
             except common.exceptions.NoSuchElementException:
                 try:
                     i.driver.find_element_by_class_name("switchmenu")
-                    
+                    random_action(switch_prob)
                 except:
                     pass
 
@@ -234,6 +241,7 @@ def feist():
 
 def feist_random_enemy():
     i.find_randbat()
+    print("random battle acquired. starting feist")
     feist()
 
 
