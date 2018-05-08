@@ -29,7 +29,14 @@ def make_matchup_matrix():
             try:
                 my_mon = f.own_team[i]
                 your_mon = f.opponent_team[j]
-                matchup_matrix[i][j] = get_matchup(my_mon, your_mon)
+                if my_mon.present_health == 0 and your_mon.present_health == 0:
+                    matchup_matrix[i][j] = 2
+                elif my_mon.present_health == 0:
+                    matchup_matrix[i][j] = 0
+                elif your_mon.present_health == 0:
+                    matchup_matrix[i][j] == 4
+                else:
+                    matchup_matrix[i][j] = get_matchup(my_mon, your_mon)
             except IndexError:
                 # Unrevealed opponent
                 matchup_matrix[i][j] = TIE

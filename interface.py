@@ -1,7 +1,6 @@
 from selenium import webdriver, common
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
-import random
 import math
 import time
 import os
@@ -17,9 +16,8 @@ own_mon_out = None
 opponent_mon_out = None
 
 
-
-
 def open_window(url):
+    """Opens window"""
     my_dir = os.path.dirname(__file__)
     chrome_path = os.path.join(my_dir, 'chromedriver')
     new_driver = webdriver.Chrome(chrome_path)
@@ -75,6 +73,7 @@ def find_randbat():
 
 
 def act(action, switch=False):
+    """Take an action (a move name or a Pokémon name) as a parameter and whether the action is a switch."""
     if switch:
         pokemon_buttons = driver.find_elements_by_name("chooseSwitch")
         for pokemon in pokemon_buttons:
@@ -447,8 +446,8 @@ def parse_move_text(move):
     return Move(type, power, category)
 
 
-def parse_log(turn_to_parse):
-    """Pre-condition: battle state is up to date until turn_to_parse - 1
+def update():
+    """Pre-condition: battle state is up to date until turn_to_parse - 1.
     Post-condition: battle state is up to date. Except it probably misses loads of stuff"""
 
     # Below is the log-reading method
@@ -495,28 +494,56 @@ def parse_log(turn_to_parse):
         elif " sent out " in log:
             # opponent sent someone out. see if they need to be added to opponent team. switch out mon"""
 
-    update_own_mon()
+    first_line = 0
+    logs = [log.text for log in driver.find_elements_by_class_name("battle-history")]
+    turns = [log for log in logs if "Turn " in log]
+    most_recent_turn = turns[len(turns) - 1]
+    for i in range(0, len(logs)):
+        if logs[i] == most_recent_turn:
+            first_line = i
+    logs = logs[first_line:]
+
+    i_fainted = False
+    you_fainted = False
+    for log in logs:
+        if " fainted!" and " opposing " in log:
+            you_fainted = True
+        elif " fainted!" in log:
+            i_fainted = True
+
+    if you_fainted:
+        opponent_mon_out.present_health = 0
+    if i_fainted:
+        own_mon_out.present_health = 0
+    else:
+        update_own_mon()
+
     update_opponent()
 
 
 def update_own_mon():
-    statbar = driver.find_element_by_class_name("rstatbar")
-    mon = " ".join(statbar.text.split(" ")[:len(statbar.text.split(" ")) - 1])
-    global own_mon_out
-
     try:
-        if own_mon_out.name != mon:
+        statbar = driver.find_element_by_class_name("rstatbar")
+        mon = " ".join(statbar.text.split(" ")[:len(statbar.text.split(" ")) - 1])
+        global own_mon_out
+
+        try:
+            if own_mon_out.name != mon:
+                for pokemon in own_team:
+                    if pokemon.name == mon:
+                        own_mon_out = pokemon
+        except AttributeError:
             for pokemon in own_team:
                 if pokemon.name == mon:
                     own_mon_out = pokemon
-    except AttributeError:
-        for pokemon in own_team:
-            if pokemon.name == mon:
-                own_mon_out = pokemon
-    hptext = statbar.find_element_by_class_name("hptext").text
-    health_percent = int(hptext[:len(hptext) - 1]) / 100
-    own_mon_out.present_health = own_mon_out.total_health * health_percent
-    update_status(own_mon_out, statbar)
+        hptext = statbar.find_element_by_class_name("hptext").text
+        health_percent = int(hptext[:len(hptext) - 1]) / 100
+        own_mon_out.present_health = own_mon_out.total_health * health_percent
+        update_status(own_mon_out, statbar)
+    except common.exceptions.NoSuchElementException:
+        # Your Pokémon is not there, either because it fainted or because you have used a switching move
+        # For now, assume it is due to fainting
+        own_mon_out.present_health = 0
 
 
 def update_opponent():

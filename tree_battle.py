@@ -3,9 +3,6 @@ import random
 import interface as i
 import time
 
-"""Plays randbats randomly, with a set probability to switch. Does not store game state,
-as the game state does not affect its actions."""
-
 
 def start():
     i.open_window("https://play.pokemonshowdown.com")
@@ -22,6 +19,7 @@ def random_move():
     options = i.get_move_options()
     selection = options[random.randint(0, len(options) - 1)]
     i.act(selection)
+
 
 def calc_switch_and_move():
     options = i.get_move_options()
@@ -164,7 +162,8 @@ def has_heal(options):
         if move.power == 0:
             return False
     return False
-    
+
+
 def random_action():
     switch_allowed = True
     move_allowed = True
@@ -215,11 +214,11 @@ def feist():
         try:
             try:
                 i.driver.find_element_by_class_name("movemenu")
-                random_action(switch_prob)
+                random_action()
             except common.exceptions.NoSuchElementException:
                 try:
                     i.driver.find_element_by_class_name("switchmenu")
-                    random_action(switch_prob)
+                    random_action()
                 except:
                     pass
 
