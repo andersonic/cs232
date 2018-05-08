@@ -75,8 +75,7 @@ def find_randbat():
 
 
 def act(action, switch=False):
-    update_own_mon()
-    update_opponent()
+    
     if switch:
         pokemon_buttons = driver.find_elements_by_name("chooseSwitch")
         for pokemon in pokemon_buttons:

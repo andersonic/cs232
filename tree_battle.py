@@ -156,7 +156,7 @@ def calc_danger_of_knockout(options,mon):
     #if at any time opponent damage exceedes health, we are in danger
     for move in options:
         moveDamage = i.mon.damage_calc(move,i.opponent_mon_out)
-        if moveDamage > i.mon.presentHealth:
+        if moveDamage > i.mon.present_health:
             return True
     return False 
 
