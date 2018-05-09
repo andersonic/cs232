@@ -50,9 +50,9 @@ class State:
 
     @staticmethod
     def get_faster(my_mon, your_mon):
-        if my_mon.calc_effective_stats[4] > your_mon.calc_effective_stats[4]:
+        if my_mon.calc_effective_stats()[4] > your_mon.calc_effective_stats()[4]:
             return my_mon
-        elif my_mon.calc_effective_stats[4] < your_mon.calc_effective_stats[4]:
+        elif my_mon.calc_effective_stats()[4] < your_mon.calc_effective_stats()[4]:
             return your_mon
         else:
             return None
@@ -119,7 +119,7 @@ class State:
         """Handle one or both players switching, damaging moves only"""
         if myaction.switch:
             for mon in self.my_team:
-                if mon == myaction:
+                if mon == myaction.action:
                     successor.my_mon_out = mon
             assert successor.my_mon_out != self.my_mon_out
             if not youraction.switch:
@@ -135,10 +135,12 @@ class State:
                     successor.your_mon_out.damage_calc(myaction, successor.my_mon_out)
         return successor
 
-    def successor_both_move(self, successor, myaction, youraction):
+    def successor_both_move(self, successor, my_action, your_action):
         """Handle both players moving"""
-
         faster = self.get_faster(successor.my_mon_out, successor.your_mon_out)
+
+        myaction = my_action.action
+        youraction = your_action.action
 
         if faster is None:
             # Assume you lose the speed tie for now
@@ -228,10 +230,12 @@ class State:
         return self.aux_make_successor_matrix(self.get_my_actions(), self.get_your_actions())
 
     def get_best_action(self):
-        move = self.value()
-        return self.get_my_actions()[move[1].index(move[0])]
+        action = self.value()
+        return self.get_my_actions()[action[1].index(action[0])]
+
 
 class Action:
     def __init__(self, action, switch=False):
-        self.name = action
+        self.name = action.name
         self.switch = switch
+        self.action = action

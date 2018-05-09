@@ -66,7 +66,7 @@ def log_in(username, password):
 def start():
     open_window("https://play.pokemonshowdown.com")
     time.sleep(2)
-    log_in("cs232-test-1", "cs232")
+    log_in("cs232-test-5", "cs232")
 
 
 def find_randbat():
@@ -171,8 +171,11 @@ def parse_own_team(element):
 
     # Get ability and item
     temp = text[2].split(" / ")
-    ability = " ".join(temp[1].split(" ")[1:])
-    item = " ".join(temp[1].split(" ")[1:])
+    try:
+        ability = " ".join(temp[0].split(" ")[1:])
+        item = " ".join(temp[1].split(" ")[1:])
+    except IndexError:
+        ability = " ".join(temp[0].split(" ")[1:])
 
     # Get stats
     stats = text[3].split("/")
@@ -244,6 +247,11 @@ def get_base_stats(mon):
                 break
         except IndexError:
             pass
+    try:
+        assert len(base_stats) != 0
+    except AssertionError:
+        time.sleep(2)
+        base_stats = get_base_stats(mon)
     return base_stats
 
 
@@ -329,7 +337,12 @@ class Pokemon:
 
     def __eq__(self, other):
         """Note that this definition of equality breaks down when comparing Pokémon on opposite teams"""
-        return self.name == other.name
+        if self is None:
+            return False
+        elif other is None:
+            return False
+        else:
+            return self.name == other.name
 
     def __str__(self):
         return self.name
@@ -436,10 +449,25 @@ class Move:
 def parse_move_text(move):
     all_stuff = retrieve_data()
     move_data = None
+    move_name = None
     for item in all_stuff:
         move_name = item.text.split('\n')[0]
         if move_name == move or move_name.replace(" ", "").replace("-", "").lower() == move:
             move_data = item
+            break
+
+    try:
+        assert move_data is not None
+    except AssertionError:
+        time.sleep(2)
+        all_stuff = retrieve_data()
+        for item in all_stuff:
+            move_name = item.text.split('\n')[0]
+            if move_name == move or move_name.replace(" ", "").replace("-", "").lower() == move:
+                move_data = item
+                break
+
+    assert move_data is not None
 
     images = move_data.find_element_by_class_name("typecol").find_elements_by_tag_name("img")
     type = images[0].get_attribute("alt")
@@ -451,7 +479,7 @@ def parse_move_text(move):
             power = int(move_data.text.split("\n")[2])
         except ValueError:
             pass
-    return Move(type, power, category)
+    return Move(type, power, category, name=move_name)
 
 
 def update():
@@ -538,11 +566,15 @@ def update():
     else:
         update_own_mon()
 
+    # Not perfect for now but life goes on
+    update_opponent()
+
 
 def update_own_mon():
     try:
         statbar = driver.find_element_by_class_name("rstatbar")
-        mon = " ".join(statbar.text.split(" ")[:len(statbar.text.split(" ")) - 1])
+        firstline = " ".join(statbar.text.split("\n")[0].split(" "))
+        mon = " ".join(firstline.split(" ")[:len(firstline.split(" ")) - 1])
         global own_mon_out
 
         try:
@@ -572,9 +604,12 @@ def update_opponent():
     opp_mon_out = None
 
     for pokemon in opponent_team:
-        if mon == pokemon.name:
-            already_parsed = True
-            opp_mon_out = pokemon
+        try:
+            if mon == pokemon.name:
+                already_parsed = True
+                opp_mon_out = pokemon
+        except AttributeError:
+            pass
 
     global opponent_mon_out
     if not already_parsed:
