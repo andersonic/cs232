@@ -21,7 +21,6 @@ def make_health_difference_matrix():
 
     return health_matrix
 
-
 def make_matchup_matrix():
     matchup_matrix = [[None for j in range(0,6)] for i in range(0,6)]
 
@@ -44,7 +43,6 @@ def make_matchup_matrix():
 
     return matchup_matrix
 
-
 def get_heuristic():
     health_matrix = make_health_difference_matrix()
     matchup_matrix = make_matchup_matrix()
@@ -62,6 +60,14 @@ def get_heuristic():
 
     return heuristic
 
+def get_faster(my_mon, your_mon):
+    faster = None
+
+    if my_mon.calc_effective_stats()[4] > your_mon.calc_effective_stats()[4]:
+        faster = my_mon
+    elif your_mon.calc_effective_stats()[4] > my_mon.calc_effective_stats()[4]:
+        faster = your_mon
+    return faster
 
 def get_matchup(my_mon, your_mon):
     my_best_damage = 0
@@ -79,12 +85,7 @@ def get_matchup(my_mon, your_mon):
             your_best_damage = damage
     your_best_damage = your_best_damage * 100 / my_mon.total_health
 
-    faster = None
-
-    if my_mon.calc_effective_stats()[4] > your_mon.calc_effective_stats()[4]:
-        faster = my_mon
-    elif your_mon.calc_effective_stats()[4] > my_mon.calc_effective_stats()[4]:
-        faster = your_mon
+    faster = get_faster(my_mon, your_mon)
 
     if my_mon is faster and my_best_damage >= 100:
         return BEST_MATCHUP
@@ -224,10 +225,8 @@ class State:
 
 """
 
-    def get_successor(self, myaction, youraction):
-        successor = copy.deepcopy(self)
-
-        # Handle one or both players switching, damaging moves only
+    def successor_with_switch(self, successor, myaction, youraction):
+        """Handle one or both players switching, damaging moves only"""
         if myaction.switch:
             for mon in self.my_team:
                 if mon == myaction:
@@ -243,8 +242,100 @@ class State:
             assert successor.your_mon_out != self.your_mon_out
             if not myaction.switch:
                 successor.your_mon_out.present_health -= \
-                successor.your_mon_out.damage_calc(myaction, successor.my_mon_out)
+                    successor.your_mon_out.damage_calc(myaction, successor.my_mon_out)
+        return successor
 
+    def successor_both_move(self, successor, myaction, youraction):
+        """Handle both players moving"""
+
+        faster = get_faster(successor.my_mon_out, successor.your_mon_out)
+
+        if faster is None:
+            # Assume you lose the speed tie for now
+            faster = successor.your_mon_out
+
+        if successor.your_mon_out is faster:
+            successor.my_mon_out.present_health -= \
+            successor.my_mon_out.damage_calc(youraction, successor.your_mon_out)
+
+            if successor.my_mon_out.present_health > 0:
+                successor.your_mon_out.present_health -= \
+                successor.your_mon_out.damage_calc(myaction, successor.my_mon_out)
+        else:
+            successor.your_mon_out.present_health -= \
+            successor.your_mon_out.damage_calc(myaction, successor.my_mon_out)
+
+            if successor.your_mon_out.present_health > 0:
+                successor.my_mon_out.present_health -= \
+                successor.my_mon_out.damage_calc(youraction, successor.your_mon_out)
+
+    def get_successor(self, myaction, youraction):
+        successor = copy.deepcopy(self)
+
+        if myaction.switch or youraction.switch:
+            return self.successor_with_switch(successor, myaction, youraction)
+        else:
+            return self.successor_both_move(successor, myaction, youraction)
+
+    def value(self, depth = 0):
+        """Returns the value of a state."""
+        MAX_DEPTH = 2
+        if depth >= MAX_DEPTH:
+            return self.get_heuristic()
+        else:
+            successor_matrix = self.make_successor_matrix()
+            probs = self.get_prob(successor_matrix)
+
+            # Multiply each column by its probability. Then sum the rows, and pick the best one
+            row_sums = []
+            for i in range(0, len(successor_matrix)):
+                val = 0
+                for j in range(0, len(successor_matrix[i])):
+                    val += probs[j] * successor_matrix[i][j].value(depth + 1)
+                row_sums.append(val)
+
+            return max(row_sums)
+
+    @staticmethod
+    def get_prob(self, matrix):
+        """Given a 2-D matrix of floats, return a 1-D array proportional to the sums of the columns,
+        adjusted to sum to 1."""
+
+        col_sums = []
+        total_sum = 0
+        # Make CS240 staff cry by iterating on column
+        for j in len(matrix[0]):
+            col_sum = 0
+            for i in len(matrix):
+                total_sum += matrix[i][j]
+                col_sum += matrix[i][j]
+            col_sums.append(col_sum)
+
+        for i in range(0, len(col_sums)):
+            col_sums[i] /= total_sum
+        return col_sums
+
+    def aux_make_successor_matrix(self, myactions, youractions):
+        successor_matrix = []
+        for myaction in myactions:
+            row = []
+            for youraction in youractions:
+                row.append(self.get_successor(myaction, youraction))
+            successor_matrix.append(row)
+        return successor_matrix
+
+    def get_my_actions(self):
+        moves = [Action(move) for move in self.my_mon_out.moves]
+        switches = [Action(switch, True) for switch in self.my_team if switch is not self.my_mon_out]
+        return moves + switches
+
+    def get_your_actions(self):
+        moves = [Action(move) for move in self.your_mon_out.moves]
+        switches = [Action(switch, True) for switch in self.your_team if switch is not self.your_mon_out]
+        return moves + switches
+
+    def make_successor_matrix(self):
+        return self.aux_make_successor_matrix(self.get_my_actions(), self.get_your_actions())
 
 class Action:
     def __init__(self, action, switch=False):
