@@ -422,11 +422,12 @@ class Pokemon:
 
 
 class Move:
-    def __init__(self, type, power, category, text=None):
+    def __init__(self, type, power, category, text=None, name=None):
         self.type = type
         self.power = power
         self.category = category
         self.text = text
+        self.name = name
 
     def __eq__(self, other):
         return self.type == other.type and self.power == other.power and self.category == other.category
