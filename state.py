@@ -1,4 +1,3 @@
-import interface as f
 import math
 import copy
 
@@ -36,19 +35,30 @@ class State:
                 try:
                     my_mon = self.my_team[i]
                     your_mon = self.your_team[j]
-                    if my_mon.present_health == 0 and your_mon.present_health == 0:
-                        matchup_matrix[i][j] = 2
-                    elif my_mon.present_health == 0:
-                        matchup_matrix[i][j] = 0
-                    elif your_mon.present_health == 0:
-                        matchup_matrix[i][j] == 4
+                    if my_mon.present_health <= 0 and your_mon.present_health <= 0:
+                        matchup_matrix[i][j] = TIE
+                    elif my_mon.present_health <= 0:
+                        matchup_matrix[i][j] = WORST_MATCHUP
+                    elif your_mon.present_health<= 0:
+                        matchup_matrix[i][j] = BEST_MATCHUP
                     else:
                         matchup_matrix[i][j] = self.get_matchup(my_mon, your_mon)
+                except AttributeError:
+                    matchup_matrix[i][j] = TIE
 
         return matchup_matrix
 
     @staticmethod
-    def get_matchup(self, my_mon, your_mon):
+    def get_faster(my_mon, your_mon):
+        if my_mon.calc_effective_stats[4] > your_mon.calc_effective_stats[4]:
+            return my_mon
+        elif my_mon.calc_effective_stats[4] < your_mon.calc_effective_stats[4]:
+            return your_mon
+        else:
+            return None
+
+    @staticmethod
+    def get_matchup(my_mon, your_mon):
         my_best_damage = 0
         your_best_damage = 0
 
@@ -128,7 +138,7 @@ class State:
     def successor_both_move(self, successor, myaction, youraction):
         """Handle both players moving"""
 
-        faster = get_faster(successor.my_mon_out, successor.your_mon_out)
+        faster = self.get_faster(successor.my_mon_out, successor.your_mon_out)
 
         if faster is None:
             # Assume you lose the speed tie for now
@@ -177,16 +187,16 @@ class State:
             return max(row_sums), row_sums
 
     @staticmethod
-    def get_prob(self, matrix):
+    def get_prob(matrix):
         """Given a 2-D matrix of floats, return a 1-D array proportional to the sums of the columns,
         adjusted to sum to 1."""
 
         col_sums = []
         total_sum = 0
         # Make CS240 staff cry by iterating on column
-        for j in len(matrix[0]):
+        for j in range(0,len(matrix[0])):
             col_sum = 0
-            for i in len(matrix):
+            for i in range(0, len(matrix)):
                 total_sum += matrix[i][j]
                 col_sum += matrix[i][j]
             col_sums.append(col_sum)
