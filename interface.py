@@ -75,6 +75,9 @@ def find_randbat():
 
 def act(action, switch=False):
     """Take an action (a move name or a Pokémon name) as a parameter and whether the action is a switch."""
+
+    mega_evolve()
+
     if switch:
         pokemon_buttons = driver.find_elements_by_name("chooseSwitch")
         for pokemon in pokemon_buttons:
@@ -105,7 +108,7 @@ def send_out_after_KO(pokemon_name):
 
 def mega_evolve():
     try:
-        driver.find_element_by_class("megaevo").click()
+        driver.find_element_by_class_name("megaevo").click()
         return True
     except common.exceptions.NoSuchElementException:
         return False
@@ -325,6 +328,7 @@ class Pokemon:
             self.total_health = totalhealth
             self.health_percent = presenthealth/totalhealth
             self.statuses = statuses
+            self.available_moves = moves
         else:
             # For form changes ????
             self.name = name
@@ -535,8 +539,10 @@ def update(on_last_turn=False):
         my_fainted_mon.present_health = 0
         return
     elif your_fainted_mon is not None and my_fainted_mon is None:
-        # You fainted, I didn't. Wait for you to send out
+        # You fainted, I didn't. Might still have sustained damage
         print("you fainted")
+        update_opponent()
+        update_own_mon()
         return
     elif your_fainted_mon is None and my_fainted_mon is not None:
         # I fainted, you didn't
@@ -558,6 +564,20 @@ def update_own_mon():
         mon = " ".join(firstline.split(" ")[:len(firstline.split(" ")) - 1])
         global own_mon_out
 
+        if "mega" in [a.get_attribute("alt") for a in statbar.find_elements_by_tag_name("img")]:
+            # It's a mega
+            print("mega")
+
+            current_mon = driver.find_element_by_name("chooseDisabled")
+            hover = ActionChains(driver).move_to_element(current_mon)
+            hover.perform()
+            pokemon = driver.find_element_by_id("tooltipwrapper")
+            mega_mon = parse_own_team(pokemon)
+            own_team.remove(own_mon_out)
+            own_team.append(mega_mon)
+            own_mon_out = mega_mon
+
+
         try:
             if own_mon_out.name != mon:
                 for pokemon in own_team:
@@ -567,10 +587,15 @@ def update_own_mon():
             for pokemon in own_team:
                 if pokemon.name == mon:
                     own_mon_out = pokemon
+
         hptext = statbar.find_element_by_class_name("hptext").text
         health_percent = int(hptext[:len(hptext) - 1]) / 100
         own_mon_out.present_health = own_mon_out.total_health * health_percent
         update_status(own_mon_out, statbar)
+
+        move_names = [move.text.split('\n')[0] for move in driver.find_elements_by_name("chooseMove")]
+        own_mon_out.available_moves = [move for move in own_mon_out.moves if move.name in move_names]
+
     except common.exceptions.NoSuchElementException:
         # Your Pokémon is not there, either because it fainted or because you have used a switching move
         # For now, assume it is due to fainting
@@ -582,9 +607,13 @@ def update_opponent():
     firstline = " ".join(statbar.text.split("\n")[0].split(" "))
     mon = " ".join(firstline.split(" ")[:len(firstline.split(" ")) - 1])
 
-
     already_parsed = False
     opp_mon_out = None
+
+    if "mega" in [a.get_attribute("alt") for a in statbar.find_elements_by_tag_name("img")]:
+        # It's a mega
+        print("mega")
+        mon = "-".join([mon, "Mega"])
 
     for pokemon in opponent_team:
         try:
@@ -595,7 +624,8 @@ def update_opponent():
             pass
 
     global opponent_mon_out
-    if "mega" in [item.get_attribute("alt") for item in statbar.find_elements_by_tag_name("img")] and not already_parsed:
+    if "mega" in [a.get_attribute("alt") for a in statbar.find_elements_by_tag_name("img")] and not already_parsed:
+        print("mega")
         mega_mon = parse_opposing_mon()
         opponent_team.remove(opponent_mon_out)
         opponent_mon_out = mega_mon

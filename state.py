@@ -262,7 +262,7 @@ class State:
         moves = []
         switches = []
         if self.can_move:
-            moves = [Action(move) for move in self.my_mon_out.moves]
+            moves = [Action(move) for move in self.my_mon_out.available_moves]
         if self.can_switch:
             switches = [Action(switch, True) for switch in self.my_team if switch is not self.my_mon_out]
 
