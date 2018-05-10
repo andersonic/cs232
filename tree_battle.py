@@ -22,96 +22,106 @@ def random_move():
     i.act(selection)
 
 def calc_switch_and_move():
-    
-    print("We are in calc_switch_and_move")
-    options = i.get_move_options()
-    i.update()
-    opponentMoves = i.opponent_mon_out.moves
-    print("opponent Pokemon: " + i.opponent_mon_out)
-    print("opponent moves: " + opponentMoves)
-    #i.update_own_mon()
-    
-    sortedRunnerUps = insertionSort_pokemon(i.own_team)
-    
-    
-    current_mon = i.own_mon_out
-    move = calc_max_damage(options)[0] #get our pokemon's best move
-    
-    print("WE ARE OUTSIDE THE LOOP")
-    if calc_danger_of_knockout(opponentMoves,current_mon):
-        #yes, danger of knockout
-        print("WE ARE INSIDE THE LOOP, IF")
-        if current_mon.health_percent == 1:
-            # if we are at full health and are the best pokemon, switch to next best
-            if current_mon == sortedRunnerUps[0]:
-                calc_switch(sortedRunnerUps[1])
-                print("pokemon at full health--> next best pkmn selected")
-            else:
-                # else, switch to the best damage dealer
-                calc_switch(sortedRunnerUps[0])
-                print("pokemon at full health--> next best pkmn selected")
-        else:
-            heal = has_heal(options)
-            if heal != False:
-            #yes, has heal. heal or you are in danger of dying!!!!
-                print("pokemon in danger of knockout--> heal")
-                i.act(heal)
-            else:
-                print("pokemon in danger of knockout--> no healing move--> attack")
-                i.act(move) #act based on best move
-    else:
-        #NO, we are not in danger of knockout. does our pokemon do the most damage?
-         print("WE ARE INSIDE THE LOOP, ELSE")
-         if current_mon == sortedRunnerUps[0]:
-             #yes, our best pokemon is out in the field
-             print("pokemon is the best on the field--> attack")
-             #i.update_own_mon
-             #i.update_opponent
-             i.act(move)
-         else: 
-             #no, our best pokemon is not on the field
-            best_mon = sortedRunnerUps[0]
-            if (calc_danger_of_knockout(opponentMoves, best_mon)):
-                #yes, danger of knockout
-                if current_mon == sortedRunnerUps[1]:
-                    #yes, our pokemon is the next best pokemon
-                    print("pokemon is not the best on the field-->best pokemon in danger of knockout"
-                    + "-->attack with current pokemon")
-                    i.act(move)
-                    
+    try:
+        print("We are in calc_switch_and_move")
+        options = i.get_move_options()
+        print("options parsed. now updating game state")
+        
+        # checking to see if we initalized our team before we update
+        if i.own_mon_out == None:
+             i.get_own_team()
+             print("Team initalized.")
+        i.update()
+        print("Team updated.")
+        opponentMoves = i.opponent_mon_out.moves
+        #i.update_own_mon()
+        
+        sortedRunnerUps = insertionSort_pokemon(i.own_team)
+        print("Team sorted.")
+        
+        current_mon = i.own_mon_out
+        move = calc_max_damage(options)[0] #get our pokemon's best move
+        
+        print("WE ARE OUTSIDE THE LOOP")
+        if calc_danger_of_knockout(opponentMoves,current_mon):
+            #yes, danger of knockout
+            print("WE ARE INSIDE THE LOOP, IF")
+            if current_mon.health_percent == 1:
+                # if we are at full health and are the best pokemon, switch to next best
+                if current_mon == sortedRunnerUps[0]:
+                    calc_switch(sortedRunnerUps[1])
+                    print("pokemon at full health--> next best pkmn selected")
                 else:
-                    next_best_mon = sortedRunnerUps[1]
-                    if (calc_danger_of_knockout(opponentMoves,next_best_mon)):
-                        #yes, next best pokemon is in danger of knockout
-                        print("pokemon is not the best on the field-->best pokemon in danger of knockout"
-                                + "-->next best pokemon in danger of knockout-->attack with current pokemon")
-                        i.act(move)
-                    else:
-                        #no danger for next best pokemon
-                        print("pokemon is the best on the field-->best pokemon in danger of knockout"
-                        +"-->next best pokemon not in danger of knockout-->switch to next best pokemon")
-                        calc_switch(next_best_mon)
+                    # else, switch to the best damage dealer
+                    calc_switch(sortedRunnerUps[0])
+                    print("pokemon at full health--> next best pkmn selected")
             else:
-                #no danger for best pokemon
-                print("pokemon is not best on battle field--> best pokemon not in danger of knockout"
-                + "-->switch to best pokemon")
-                calc_switch(best_mon)
-    print("random move: we didn't get anywhere in the tree")
-    random_move()
+                heal = has_heal(options)
+                if heal != False:
+                #yes, has heal. heal or you are in danger of dying!!!!
+                    print("pokemon in danger of knockout--> heal")
+                    i.act(heal)
+                else:
+                    print("pokemon in danger of knockout--> no healing move--> attack")
+                    i.act(move) #act based on best move
+        else:
+            #NO, we are not in danger of knockout. does our pokemon do the most damage?
+            print("WE ARE INSIDE THE LOOP, ELSE")
+            if current_mon == sortedRunnerUps[0]:
+                #yes, our best pokemon is out in the field
+                print("pokemon is the best on the field--> attack")
+                #i.update_own_mon
+                #i.update_opponent
+                i.act(move)
+            else: 
+                #no, our best pokemon is not on the field
+                best_mon = sortedRunnerUps[0]
+                if (calc_danger_of_knockout(opponentMoves, best_mon)):
+                    #yes, danger of knockout
+                    if current_mon == sortedRunnerUps[1]:
+                        #yes, our pokemon is the next best pokemon
+                        print("pokemon is not the best on the field-->best pokemon in danger of knockout"
+                        + "-->attack with current pokemon")
+                        i.act(move)
+                        
+                    else:
+                        next_best_mon = sortedRunnerUps[1]
+                        if (calc_danger_of_knockout(opponentMoves,next_best_mon)):
+                            #yes, next best pokemon is in danger of knockout
+                            print("pokemon is not the best on the field-->best pokemon in danger of knockout"
+                                    + "-->next best pokemon in danger of knockout-->attack with current pokemon")
+                            i.act(move)
+                        else:
+                            #no danger for next best pokemon
+                            print("pokemon is the best on the field-->best pokemon in danger of knockout"
+                            +"-->next best pokemon not in danger of knockout-->switch to next best pokemon")
+                            calc_switch(next_best_mon)
+                else:
+                    #no danger for best pokemon
+                    print("pokemon is not best on battle field--> best pokemon not in danger of knockout"
+                    + "-->switch to best pokemon")
+                    calc_switch(best_mon)
+    except AttributeError:
+        pass
+    else:
+        print("random move: we didn't get anywhere in the tree")
+        random_move()
 
 def calc_max_damage(options):
     
     maxMove = options[0];
     maxDamage = 0;
-    
+    print ("now in: CALC_MAX_DAMAGE")
+    print options
     #loops through all of the attack moves, and picks the one that
     # does the most damage
     for move in options:
         moveDamage = i.opponent_mon_out.damage_calc(move,i.own_mon_out)
         if moveDamage > maxDamage:
             maxDamage = moveDamage
+            print maxDamage
             maxMove = move
-            
+    print maxMove, maxDamage
     return maxMove, maxDamage
 
 def calc_switch(mon):
@@ -121,19 +131,23 @@ def calc_switch(mon):
     
     options = i.get_switch_options()
     selection = options.index(mon)
+    print("IN CALC_SWITCH: pokemon to be acted upon is " + selection)
     i.act(selection, True)
     
 
 # Function to do insertion sort. sorts pokemon by their best move/damage
 def insertionSort_pokemon(team):
-    result = []
+    print("ENTERED INSERTIONSORT")
+    print team
     pokemon_and_damages = []
     for mon in team:
         options = mon.moves
         move, damage = calc_max_damage(options)
+        print move,damage 
         #add the pokemon and its best move to an index of the list
         pokemon_and_damages.append([mon,damage])
     
+    print pokemon_and_damages
     
     # Traverse through 1 to len(team)
     for i in range(1, len(pokemon_and_damages)):
@@ -144,15 +158,14 @@ def insertionSort_pokemon(team):
         # greater than key, to one position ahead
         # of their current position
         j = i-1
-        while j[1] >=0 and key[1] < pokemon_and_damages[j][1] :
+        while j >=0 and key < pokemon_and_damages[j] :
                 pokemon_and_damages[j+1] = pokemon_and_damages[j]
                 j -= 1
         pokemon_and_damages[j+1] = key
     
     #remove damage from every pokemon in sorted list and return results
     # of just ordered pokemon
-    for mon in pokemon_and_damages:
-        result.append(mon[0])
+    result = [pokemon_and_damages[0] for mon in pokemon_and_damages]
     return result
     
 def calc_danger_of_knockout(options,mon):
@@ -174,10 +187,10 @@ def has_heal(options):
             return False
     return False
     
-def random_action():
+def tree_battle():
     switch_allowed = True
     move_allowed = True
-    print("now in: RANDOM_ACTION")
+    print("now in: TREE_BATTLE")
     try:
         i.driver.find_element_by_class_name("switchmenu")
     except common.exceptions.NoSuchElementException:
@@ -191,7 +204,7 @@ def random_action():
     # move so program doesn't crash
     if switch_allowed and move_allowed:
         try:
-            print("in random_action: going to calc_switch_and_move")
+            print("in tree_battle: going to calc_switch_and_move")
             calc_switch_and_move()
         except ValueError:
             random_move()
@@ -199,14 +212,25 @@ def random_action():
             print("Decision tree did not work. Pokemon used a random move")
             random_move()
     elif switch_allowed:
-        print("in random_action: only switches allowed. calculating switch")
+        print("in tree_battle: only switches allowed. calculating switch")
         sortedRunnerUps = insertionSort_pokemon(i.own_team)
         options = i.get_switch_options()
-        # if we are the best pokemon, switch to next best. else, to best
-        if i.own_mon_out == sortedRunnerUps[0]:
-            calc_switch(sortedRunnerUps[1])
-        else:
-            calc_switch(sortedRunnerUps[0])
+        print options
+        ammendedOptions = [op.encode("ascii") for op in options]
+        print ammendedOptions
+        k=0
+        while True:
+            print ("inside of while loop")
+            k=k+1
+            pokemon = sortedRunnerUps[i].name
+            print pokemon
+            if pokemon in ammendedOptions:
+                index = ammendedOptions.index(pokemon)
+                print index
+                print options[index]
+                calc_switch(options[index])
+                break
+            
             
     elif move_allowed:
         #find our pokemon's best damage move and use it
@@ -226,12 +250,12 @@ def feist():
         try:
             try:
                 i.driver.find_element_by_class_name("movemenu")
-                print("in feist: call random_action")
-                random_action()
+                print("in feist: call tree_battle")
+                tree_battle()
             except common.exceptions.NoSuchElementException:
                 try:
                     i.driver.find_element_by_class_name("switchmenu")
-                    random_action()
+                    tree_battle()
                 except:
                     pass
 

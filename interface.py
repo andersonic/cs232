@@ -530,12 +530,15 @@ def update():
     else:
         update_own_mon()
 
+    # Not perfect for now but life goes on
+    update_opponent()
 
 
 def update_own_mon():
     try:
         statbar = driver.find_element_by_class_name("rstatbar")
-        mon = " ".join(statbar.text.split(" ")[:len(statbar.text.split(" ")) - 1])
+        firstline = " ".join(statbar.text.split("\n")[0].split(" "))
+        mon = " ".join(firstline.split(" ")[:len(firstline.split(" ")) - 1])
         global own_mon_out
 
         try:
@@ -565,14 +568,17 @@ def update_opponent():
     opp_mon_out = None
 
     for pokemon in opponent_team:
-        if mon == pokemon.name:
-            already_parsed = True
-            opp_mon_out = pokemon
-    
+        try:
+            if mon == pokemon.name:
+                already_parsed = True
+                opp_mon_out = pokemon
+        except AttributeError:
+            pass
+
     global opponent_mon_out
     if not already_parsed:
         opponent_mon_out = parse_opposing_mon()
-    elif opponent_mon_out == None or opponent_mon_out.name != mon:
+    elif opponent_mon_out is None or opponent_mon_out.name != mon:
         opponent_mon_out = opp_mon_out
 
     hptext = statbar.find_element_by_class_name("hptext").text
