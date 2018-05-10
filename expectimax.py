@@ -32,13 +32,18 @@ def act():
         can_switch = False
 
     if not can_switch and not can_move:
-        raise CantMoveError
+        raise CantMoveError("Can't move")
 
     f.update(can_switch and not can_move)
     current_state = s.State(f.own_team, f.opponent_team, f.own_mon_out, f.opponent_mon_out,
                             can_move, can_switch)
     action = current_state.get_best_action()
     f.act(action.name, action.switch)
+
+
+def make_state():
+    return s.State(f.own_team, f.opponent_team, f.own_mon_out, f.opponent_mon_out,
+                            True, True)
 
 
 class CantMoveError(Exception):

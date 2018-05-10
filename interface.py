@@ -493,10 +493,13 @@ def update(on_last_turn=False):
     logs = [log.text for log in driver.find_elements_by_class_name("battle-history")]
     turns = [log for log in logs if "Turn " in log]
 
-    most_recent_turn = turns[len(turns) - 1]
+    try:
+        most_recent_turn = turns[len(turns) - 2]
+    except IndexError:
+        most_recent_turn = turns[len(turns) - 1]
 
     if on_last_turn:
-        most_recent_turn = turns[len(turns)]
+        most_recent_turn = turns[len(turns)-1]
 
     for i in range(0, len(logs)):
         if logs[i] == most_recent_turn:
@@ -507,15 +510,18 @@ def update(on_last_turn=False):
     your_fainted_mon = None
 
     for log in logs:
-        if " fainted!" and " opposing " in log:
+        if " fainted!" in log and " opposing " in log:
             # An opposing Pokémon has fainted
             name = log.split(" ")[2]
             for mon in opponent_team:
                 if mon.name == name:
                     your_fainted_mon = mon
             # Can't assert because you might send an unrevealed mon in to die right away
-        elif " fainted!" in log:
-            # One of your Pokémon has fainted
+            if your_fainted_mon is None:
+                your_fainted_mon = Pokemon(name=name)
+                opponent_team.append(your_fainted_mon)
+        elif " fainted!" in log and on_last_turn:
+            # One of my Pokémon has fainted
             name = log.split(" ")[0]
             for mon in own_team:
                 if mon.name == name:
@@ -524,18 +530,25 @@ def update(on_last_turn=False):
 
     if your_fainted_mon is not None and my_fainted_mon is not None:
         # We both fainted
+        print("double faint")
         your_fainted_mon.present_health = 0
         my_fainted_mon.present_health = 0
+        return
     elif your_fainted_mon is not None and my_fainted_mon is None:
         # You fainted, I didn't. Wait for you to send out
-        pass
+        print("you fainted")
+        return
     elif your_fainted_mon is None and my_fainted_mon is not None:
         # I fainted, you didn't
+        print("i fainted")
         update_opponent()
+        return
     else:
+        print("no faints")
         # Neither of us fainted
         update_own_mon()
         update_opponent()
+        return
 
 
 def update_own_mon():
@@ -569,6 +582,7 @@ def update_opponent():
     firstline = " ".join(statbar.text.split("\n")[0].split(" "))
     mon = " ".join(firstline.split(" ")[:len(firstline.split(" ")) - 1])
 
+
     already_parsed = False
     opp_mon_out = None
 
@@ -581,7 +595,11 @@ def update_opponent():
             pass
 
     global opponent_mon_out
-    if not already_parsed:
+    if "mega" in [item.get_attribute("alt") for item in statbar.find_elements_by_tag_name("img")] and not already_parsed:
+        mega_mon = parse_opposing_mon()
+        opponent_team.remove(opponent_mon_out)
+        opponent_mon_out = mega_mon
+    elif not already_parsed:
         opponent_mon_out = parse_opposing_mon()
     elif opponent_mon_out is None or opponent_mon_out.name != mon:
         opponent_mon_out = opp_mon_out

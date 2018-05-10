@@ -200,7 +200,7 @@ class State:
 
     def value(self, depth=0):
         """Returns the value of a state."""
-        MAX_DEPTH = 2
+        MAX_DEPTH = 1
         if depth >= MAX_DEPTH:
             return self.get_heuristic(), None
         else:
@@ -239,7 +239,7 @@ class State:
         row_sums = []
         for i in range(0, len(matrix)):
             row_sum = 0
-            for j in range(0, len(matrix)):
+            for j in range(0, len(matrix[i])):
                 row_sum += matrix[i][j].get_heuristic()
             row_sums.append(row_sum)
 
@@ -251,9 +251,9 @@ class State:
 
     def aux_make_successor_matrix(self, myactions, youractions):
         successor_matrix = []
-        for myaction in myactions:
+        for youraction in youractions:
             row = []
-            for youraction in youractions:
+            for myaction in myactions:
                 row.append(self.get_successor(myaction, youraction))
             successor_matrix.append(row)
         return successor_matrix
