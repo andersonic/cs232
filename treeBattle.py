@@ -54,7 +54,7 @@ def calc_switch(mon):
             
             print "ammended options and options[index]"
             print ammendedOptions.index(mon)
-            print options[index]
+            print options[ammendedOptions.index(mon)]
             
             index = ammendedOptions.index(mon)
             selection = options[index]
@@ -138,6 +138,7 @@ def calc_danger_of_knockout(opponentMoves):
     print("IN: CALC_DANGER_OF_KNOCKOUT")
     #calculates damage opponent can deal to current_mon_out
     #if at any time opponent damage exceedes health, we are in danger
+    print opponentMoves
     for move in opponentMoves:
         moveDamage = i.current_mon_out.damage_calc(move,i.opponent_mon_out)
         if moveDamage > i.current_mon_out.present_health:
@@ -183,7 +184,7 @@ def tree_battle():
         calc_switch(None)
 
     elif move_allowed:
-        try:
+        
             #find our pokemon's best damage move and use it
             print("in tree_battle: only moves allowed. calculating move")
             options = i.get_move_options()
@@ -193,10 +194,7 @@ def tree_battle():
             bestMove, bestDamage = calc_max_damage(i.own_moves)
             moveIndex = ammendedOptions.index(bestMove)
             i.act(options[moveIndex])
-        except ValueError:
-            random_move()
-        else:
-            print("Decision tree did not work. Pokemon used a random move")
+      
     else:
         print("Can't do anything")
 
@@ -231,8 +229,10 @@ def calc_switch_and_move():
     try:
         options = i.get_move_options()
         
+        
+       
         # initialize team if we have not
-        if i.own_mon_out == None:
+        if i.own_team == []:
              i.get_own_team()
              print("Team initalized.")
         
