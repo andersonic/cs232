@@ -24,7 +24,7 @@ def random_move():
     
 #### HELPERS OF THE DECISION TREE: CALCULATORS AND IMPLEMENTORS ####
 def calc_max_damage(moves):
-    
+   
     maxMove = moves[0];
     maxDamage = 0;
     print ("now in: CALC_MAX_DAMAGE")
@@ -41,6 +41,7 @@ def calc_max_damage(moves):
     return maxMove, maxDamage
 
 def calc_switch(mon):
+
     #switches according to the pokemon specified by the tree or otherwise
     #will be either the best, next best, or next next best depending on
     #what pokemon is expected to die or not
@@ -83,7 +84,7 @@ def calc_switch(mon):
             while True:
                 print ("inside of while loop")
                 k=k+1
-                pokemon = sortedRunnerUps[i].name
+                pokemon = sortedRunnerUps[k].name
                 
                 print "ammended options of pokemonand options[index]"
                 print ammendedOptions.index(pokemon)
@@ -101,6 +102,7 @@ def calc_switch(mon):
 
 # Function to do insertion sort. sorts pokemon by their best move/damage
 def insertionSort_pokemon():
+    
     print("ENTERED INSERTIONSORT")
     pokemon_and_damages = []
     
@@ -121,14 +123,14 @@ def insertionSort_pokemon():
     print pokemon_and_damages
     
     # Traverse through 1 to len(team)
-    for i in range(1, len(pokemon_and_damages)-1):
+    for m in range(1, len(pokemon_and_damages)-1):
         
-        key = pokemon_and_damages[i]
+        key = pokemon_and_damages[m]
  
         # Move elements of arr[0..i-1], that are
         # greater than key, to one position ahead
         # of their current position
-        j = i-1
+        j = m-1
         while j >=0 and key < pokemon_and_damages[j] :
                 pokemon_and_damages[j+1] = pokemon_and_damages[j]
                 j -= 1
@@ -140,6 +142,7 @@ def insertionSort_pokemon():
     return  [pokemon_and_damages[0] for mon in pokemon_and_damages]
     
 def calc_danger_of_knockout(opponentMoves,ourMon,opponentMon):
+ 
     print("IN: CALC_DANGER_OF_KNOCKOUT")
     #calculates damage opponent can deal to ourMon
     #if at any time opponent damage exceedes health, we are in danger
@@ -164,6 +167,7 @@ def has_heal(moves):
     return False
 
 def tree_battle():
+   
     switch_allowed = True
     move_allowed = True
     print("now in: TREE_BATTLE")
@@ -207,6 +211,7 @@ def tree_battle():
         print("Can't do anything")
 
 def available_pokemon(sortedTeam,position): 
+
     #looks for an available pokemon in the position specificed
     #for example: if we wanted the best available pokemon, we would 
     #do available_pokemon(sortedTeam,1). if we wanted the second best
@@ -222,7 +227,7 @@ def available_pokemon(sortedTeam,position):
     while True:
         print ("inside of while loop")
         k=k+1
-        pokemon = sortedTeam[i].name
+        pokemon = sortedTeam[k].name
         if pokemon in ammendedOptions:
             index = ammendedOptions.index(pokemon)
             if available == position:
@@ -232,6 +237,7 @@ def available_pokemon(sortedTeam,position):
 
 ### THE HEART OF TREE_BATTLE: A DECISION TREE ###
 def calc_switch_and_move():
+
     print("We are in calc_switch_and_move")
     treeStatement = "" #keep track of where we go in tree
     try:
