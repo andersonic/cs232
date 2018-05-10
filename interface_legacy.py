@@ -9,7 +9,7 @@ import demjson
 driver = None
 all_pokemon_data = demjson.decode(open('pokemon_data.txt', 'r').read())
 own_team = []
-opponent_team = []
+opponent_team = [None, None, None, None, None, None]
 game_state = {'rocks':False, 'spikes': 0, 'tspikes': 0, 'weather':'none', 'trickroom':False, 'terrain':'none'}
 turn = 0
 own_mon_out = None
@@ -161,22 +161,9 @@ def get_own_team():
 def parse_own_team(element):
     text = element.text
 
-    # Get types
-    images = element.find_elements_by_tag_name("img")
-    types = []
-    for image in images:
-        if image.get_attribute("alt") is not "M" and image.get_attribute("alt") is not "F":
-            types.append(image.get_attribute("alt"))
-    if len(types) == 1:
-        types.append('none')
-
     # Get health
     text = text.split("\n")
     name = " ".join(text[0].split(" ")[:len(text[0].split(" "))-1])
-
-    if "(" in name:
-        name = name.split("(")[1].split(")")[0]
-
     level = int(text[0].split(" ")[len(text[0].split(" ")) - 1][1:])
     current_health = int(text[1].split(" ")[2].split("/")[0][1:])
     total_health_text = text[1].split(" ")[2].split("/")[1]
@@ -215,7 +202,15 @@ def parse_own_team(element):
 
     moves = [parse_move_text(i) for i in moves]
 
-    return Pokemon(name, level, types, moves, None, ability, current_health, total_health, stats)
+    images = element.find_elements_by_tag_name("img")
+    types = []
+    for image in images:
+        if image.get_attribute("alt") is not "M" and image.get_attribute("alt") is not "F":
+            types.append(image.get_attribute("alt"))
+    if len(types) == 1:
+        types.append('none')
+
+    return Pokemon(name, level, types, moves, item, ability, current_health, total_health, stats)
 
 
 def query_data(data):
@@ -261,7 +256,7 @@ def get_base_stats(mon):
 
 
 def get_possible_moves(name):
-    return all_pokemon_data[name.replace(" ", "").replace("-", "").lower()]['randomBattleMoves']
+    return all_pokemon_data[name.replace(" ", "").lower()]['randomBattleMoves']
 
 
 def handle_list_moves(moves):
@@ -284,9 +279,6 @@ def parse_opposing_mon():
     name_temp = help_text[0].split(" ")
     name = " ".join(name_temp[:len(name_temp) - 1])
 
-    if "(" in name:
-        name = name.split("(")[1].split(")")[0]
-
     level = int(name_temp[len(name_temp) - 1][1:])
 
     base_stats = get_base_stats(name)
@@ -306,7 +298,10 @@ def parse_opposing_mon():
 
     new_mon = Pokemon(name, level, types, moves, None, None, stats[0], stats[0], stats[1:])
     if new_mon not in opponent_team:
-        opponent_team.append(new_mon)
+        for i in range(0, len(opponent_team)):
+            if opponent_team[i] is None:
+                opponent_team[i] = new_mon
+                break
     return new_mon
 
 
@@ -349,6 +344,9 @@ class Pokemon:
             return False
         else:
             return self.name == other.name
+
+    def __str__(self):
+        return self.name
 
     def damage_calc(self, enemy_move, enemy_mon):
         enemy_stats = enemy_mon.calc_effective_stats()
@@ -485,19 +483,58 @@ def parse_move_text(move):
     return Move(type, power, category, name=move_name)
 
 
-def update(on_last_turn=False):
+def update():
     """Pre-condition: battle state is up to date until turn_to_parse - 1.
     Post-condition: battle state is up to date. Except it probably misses loads of stuff"""
+
+    # Below is the log-reading method
+    """first_line = 0
+    last_line = 0
+    logs = driver.find_elements_by_class_name("battle-history")
+    logs = [log.text for log in logs]
+    for i in range(0, len(logs)):
+        if logs[i] == "Turn " + str(turn_to_parse):
+            first_line = i
+        if logs[i] == "Turn " + str(turn_to_parse + 1):
+            last_line = i
+
+    relevant_logs = logs[first_line:last_line]
+
+    for log in relevant_logs:
+        if " used " in log:
+            # someone used a move
+            # Do I care?
+            pass
+        elif " lost " in log:
+            # someone lost health, due to being hit or life orb
+            percent = extract_percent(log)
+            if " opposing " in log:
+                # opponent lost health
+                opponent_mon_out.current_health *= percent
+            else:
+                # own pokemon lost health. find percent and multiply
+                own_mon_out.current_health *= percent
+        elif " restored " in log:
+            # someone recovered health
+        elif "Pointed stones dug into " in log:
+            # someone took stealth rocks damage
+            if "the opposing" in log:
+                # opposing mon took rocks damage
+        elif " had its energy drained!" in log:
+            # someone recovered health through draining
+        elif " fainted " in log:
+            # someone fainted
+            # should be detected elsewhere
+            pass
+        elif "Go! " in log:
+            # player send someone out. switch out pokemon
+        elif " sent out " in log:
+            # opponent sent someone out. see if they need to be added to opponent team. switch out mon"""
 
     first_line = 0
     logs = [log.text for log in driver.find_elements_by_class_name("battle-history")]
     turns = [log for log in logs if "Turn " in log]
-
     most_recent_turn = turns[len(turns) - 1]
-
-    if on_last_turn:
-        most_recent_turn = turns[len(turns)]
-
     for i in range(0, len(logs)):
         if logs[i] == most_recent_turn:
             first_line = i
@@ -505,7 +542,6 @@ def update(on_last_turn=False):
 
     my_fainted_mon = None
     your_fainted_mon = None
-
     for log in logs:
         if " fainted!" and " opposing " in log:
             # An opposing Pokémon has fainted
@@ -513,7 +549,7 @@ def update(on_last_turn=False):
             for mon in opponent_team:
                 if mon.name == name:
                     your_fainted_mon = mon
-            # Can't assert because you might send an unrevealed mon in to die right away
+            # Harder because you might send an unrevealed mon in to die right away
         elif " fainted!" in log:
             # One of your Pokémon has fainted
             name = log.split(" ")[0]
@@ -522,20 +558,17 @@ def update(on_last_turn=False):
                     my_fainted_mon = mon
             assert my_fainted_mon is not None
 
-    if your_fainted_mon is not None and my_fainted_mon is not None:
-        # We both fainted
+    if your_fainted_mon is not None:
         your_fainted_mon.present_health = 0
+        if my_fainted_mon is None:
+            update_opponent()
+    if my_fainted_mon is not None:
         my_fainted_mon.present_health = 0
-    elif your_fainted_mon is not None and my_fainted_mon is None:
-        # You fainted, I didn't. Wait for you to send out
-        pass
-    elif your_fainted_mon is None and my_fainted_mon is not None:
-        # I fainted, you didn't
-        update_opponent()
     else:
-        # Neither of us fainted
         update_own_mon()
-        update_opponent()
+
+    # Not perfect for now but life goes on
+    update_opponent()
 
 
 def update_own_mon():
@@ -566,15 +599,14 @@ def update_own_mon():
 
 def update_opponent():
     statbar = driver.find_element_by_class_name("lstatbar")
-    firstline = " ".join(statbar.text.split("\n")[0].split(" "))
-    mon = " ".join(firstline.split(" ")[:len(firstline.split(" ")) - 1])
+    mon = " ".join(statbar.text.split(" ")[:len(statbar.text.split(" ")) - 1])
 
     already_parsed = False
     opp_mon_out = None
 
     for pokemon in opponent_team:
         try:
-            if mon == pokemon.name or mon in pokemon.name:
+            if mon == pokemon.name:
                 already_parsed = True
                 opp_mon_out = pokemon
         except AttributeError:
