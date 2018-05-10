@@ -27,7 +27,6 @@ def calc_max_damage(moves):
    
     maxMove = moves[0];
     maxDamage = 0;
-    print ("now in: CALC_MAX_DAMAGE")
     
     #loops through all of the attack moves, and picks the one that
     # does the most damage
@@ -52,12 +51,12 @@ def calc_switch(mon):
             options = i.get_switch_options()
             #account for u'Name' format when we call get_switch_options()
             ammendedOptions = [op.encode("ascii") for op in options]
-            
+                
             print "ammended options and options[index]"
             print ammendedOptions.index(mon)
             print options[ammendedOptions.index(mon)]
             
-            index = ammendedOptions.index(mon)
+            index = options.index(mon)
             selection = options[index]
             print("IN CALC_SWITCH: pokemon to be acted upon is " + selection)
             i.act(selection, True)   
@@ -76,30 +75,33 @@ def calc_switch(mon):
             
             #get available switch options
             options = i.get_switch_options()
-            #account for u'Name' format when we call get_switch_options()
-            ammendedOptions = [op.encode("ascii") for op in options] 
-
             # loop through sorted pokemon until we find one that is not on the field
             k=0
-            while True:
+  
+            actNotSelected = False
+            while actNotSelected:
                 print ("inside of while loop")
                 k=k+1
                 pokemon = sortedRunnerUps[k].name
                 
-                print "ammended options of pokemonand options[index]"
-                print ammendedOptions.index(pokemon)
-                print options[index]
+                print "pokemon sorted:"
+                print pokemon
                 
-                if pokemon in ammendedOptions:
-                    index = ammendedOptions.index(pokemon)
-                    calc_switch(options[index])
-                    break
+                
+                if pokemon in options:
+                    index = options.index(pokemon)
+                    selection = options[index]
+                    i.act(selection, True)
+                    actNotSelected = True
+
+                
         except AttributeError:
             pass
         else:
             print("Unable to switch to sorted pokemon. Random_switch called")
             random_switch()
 
+"""
 # Function to do insertion sort. sorts pokemon by their best move/damage
 def insertionSort_pokemon():
     
@@ -116,14 +118,14 @@ def insertionSort_pokemon():
         move, damage = calc_max_damage(options)
         print move,damage 
         #add the pokemon and its best move to an index of the list
-        pokemon_and_damages.append([mon,damage])
+        pokemon_and_damages.append([damage,mon])
     print "our team is:"
     print [mon.name for mon in team]
     print "^^^"
     print pokemon_and_damages
     
     # Traverse through 1 to len(team)
-    for m in range(1, len(pokemon_and_damages)-1):
+    for m in range(1, len(pokemon_and_damages)):
         
         key = pokemon_and_damages[m]
  
@@ -139,8 +141,48 @@ def insertionSort_pokemon():
     #remove damage from every pokemon in sorted list and return results
     # of just ordered pokemon
     #returns Pokemon object list
-    return  [pokemon_and_damages[0] for mon in pokemon_and_damages]
+    print "sorted team:"
+    results = [pokemon_and_damages[0] for mon in pokemon_and_damages]
+    print [ mon[1].name for mon in results]
+    #switch so pokemon is first, then damage
+    return [(mon[1],mon[0]) for mon in results]
+    """
+def insertionSort_pokemon():
+    damages_and_pokemon = []
+    if i.own_team == []:
+        i.get_own_team()
+    team = i.own_team
+   
+    for mon in team:
+        options = mon.moves
+        move, damage = calc_max_damage(options)
+        #add the pokemon and its best move to an index of the list
+        damages_and_pokemon.append([damage,mon])
+   
+    alist = damages_and_pokemon
+    print "damages and pokemon:"
+    print damages_and_pokemon
     
+    for index in range(1,len(alist)):
+
+      currentvalue = alist[index]
+      position = index
+
+      while position>0 and alist[position-1]>currentvalue:
+         alist[position]=alist[position-1]
+         position = position-1
+
+      alist[position]=currentvalue
+    
+    #return in format: pokemon, damages
+    results = alist
+    #just return the sorted pokemon
+    print "sorted pokemon"
+    print results
+    print "tuple with just name"
+    print [ pokeTuple[1].name for pokeTuple in results]
+    return [ pokeTuple[1] for pokeTuple in results]
+     
 def calc_danger_of_knockout(opponentMoves,ourMon,opponentMon):
  
     print("IN: CALC_DANGER_OF_KNOCKOUT")
@@ -224,13 +266,18 @@ def available_pokemon(sortedTeam,position):
     available = 1
     # loop through sorted pokemon until we find one that is not on the field
     k=0
-    while True:
+    print "ammended switch options:"
+    print ammendedOptions
+    while (k< (sortedTeam.length -1)):
         print ("inside of while loop")
         k=k+1
         pokemon = sortedTeam[k].name
+        print pokemon
+        
         if pokemon in ammendedOptions:
             index = ammendedOptions.index(pokemon)
             if available == position:
+                print index, pokemon
                 return index, pokemon
             available = available + 1
     return None, None
