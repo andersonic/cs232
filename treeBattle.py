@@ -134,14 +134,15 @@ def insertionSort_pokemon():
     #returns Pokemon object list
     return  [pokemon_and_damages[0] for mon in pokemon_and_damages]
     
-def calc_danger_of_knockout(opponentMoves):
+def calc_danger_of_knockout(opponentMoves,ourMon,opponentMon):
     print("IN: CALC_DANGER_OF_KNOCKOUT")
-    #calculates damage opponent can deal to current_mon_out
+    #calculates damage opponent can deal to ourMon
     #if at any time opponent damage exceedes health, we are in danger
     print opponentMoves
     for move in opponentMoves:
-        moveDamage = i.current_mon_out.damage_calc(move,i.opponent_mon_out)
-        if moveDamage > i.current_mon_out.present_health:
+        print("about to use damage_calc")
+        moveDamage = ourMon.damage_calc(move,opponentMon)
+        if moveDamage > ourMon.present_health:
             return True
     return False 
 
@@ -227,10 +228,7 @@ def calc_switch_and_move():
     print("We are in calc_switch_and_move")
     treeStatement = "" #keep track of where we go in tree
     try:
-        options = i.get_move_options()
-        
-        
-       
+
         # initialize team if we have not
         if i.own_team == []:
              i.get_own_team()
@@ -239,6 +237,8 @@ def calc_switch_and_move():
         i.update()
         print ("update completed.")
         
+        options = i.get_move_options()
+
         ourPokemon = i.own_mon_out
         opponentPokemon = i.opponent_mon_out
         print ("fetched our mon and opponent mon")
@@ -249,7 +249,7 @@ def calc_switch_and_move():
         move, damage = calc_max_damage(ourMoves)
         print ("max move calculated")
         
-        if calc_danger_of_knockout(opponentMoves):
+        if calc_danger_of_knockout(opponentMoves,ourPokemon,opponentPokemon):
             treestatement = treeStatement + "Current pokemon in danger of knockout--> "
             
             if ourPokemon.health_percent ==1:
@@ -282,7 +282,7 @@ def calc_switch_and_move():
                 treeStatement = treeStatement \
                 + "pokemon is not the best out of available pokemon-->" 
                 
-                if(calc_danger_of_knockout(opponentMoves,nextBestPokemon)):
+                if(calc_danger_of_knockout(opponentMoves,bestPokemon,opponentPokemon)):
                     treeStatement = treeStatement \
                     + "best pokemon in danger of knockout-->"
                     
@@ -295,7 +295,7 @@ def calc_switch_and_move():
                         treeStatement = treeStatement \
                         + "our pokemone is not the next best-->"
             
-                        if (calc_danger_of_knockout(opponentMoves,nextBestPokemon)):
+                        if (calc_danger_of_knockout(opponentMoves,nextBestPokemon,opponentPokemon)):
                             treeStatement = treeStatement \
                             + "next best pokemon in danger of knockout-->Attack"
                             print treeStatement
@@ -306,7 +306,7 @@ def calc_switch_and_move():
                     treeStatement = treeStatement \
                     + "best pokemon in not danger of knockout-->Switch"
                     print treeStatement
-                    calc_switch(nextBestPokemon)
+                    calc_switch(bestPokemon)
         
         
     except AttributeError:

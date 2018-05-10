@@ -160,61 +160,63 @@ def get_own_team():
 
 
 def parse_own_team(element):
-    text = element.text
+   text = element.text
 
-    # Get health
-    text = text.split("\n")
-    name = " ".join(text[0].split(" ")[:len(text[0].split(" "))-1])
-    level = int(text[0].split(" ")[len(text[0].split(" ")) - 1][1:])
-    current_health = int(text[1].split(" ")[2].split("/")[0][1:])
-    total_health_text = text[1].split(" ")[2].split("/")[1]
-    total_health = int(total_health_text[0:len(total_health_text) - 1])
+   # Get types
+   images = element.find_elements_by_tag_name("img")
+   types = []
+   for image in images:
+       if image.get_attribute("alt") is not "M" and image.get_attribute("alt") is not "F":
+           types.append(image.get_attribute("alt"))
+   if len(types) == 1:
+       types.append('none')
 
-    # Get ability and item
-    temp = text[2].split(" / ")
-    ability = " ".join(temp[1].split(" ")[1:])
-    item = " ".join(temp[1].split(" ")[1:])
+   # Get health
+   text = text.split("\n")
+   name = " ".join(text[0].split(" ")[:len(text[0].split(" "))-1])
 
-    # Get stats
-    stats = text[3].split("/")
-    temp = []
-    for i in range(0,5):
-        pieces = stats[i].split(" ")
-        for piece in pieces:
-            if piece != "":
-                temp.append(int(piece))
-                break
-    stats = temp
+   if "(" in name:
+       name = name.split("(")[1].split(")")[0]
 
-    # Get moves
-    moves = []
-    try:
-        for i in range(4, 8):
-            moves.append(text[i][2:])
-    except IndexError:
-        pass
+   level = int(text[0].split(" ")[len(text[0].split(" ")) - 1][1:])
+   current_health = int(text[1].split(" ")[2].split("/")[0][1:])
+   total_health_text = text[1].split(" ")[2].split("/")[1]
+   total_health = int(total_health_text[0:len(total_health_text) - 1])
 
-    for move in moves:
-        query_data(move)
-    time.sleep(2)
+   # Get ability and item
+   temp = text[2].split(" / ")
+   try:
+       ability = " ".join(temp[0].split(" ")[1:])
+       item = " ".join(temp[1].split(" ")[1:])
+   except IndexError:
+       ability = " ".join(temp[0].split(" ")[1:])
 
-    moves = [parse_move_text(i) for i in moves]
+   # Get stats
+   stats = text[3].split("/")
+   temp = []
+   for i in range(0,5):
+       pieces = stats[i].split(" ")
+       for piece in pieces:
+           if piece != "":
+               temp.append(int(piece))
+               break
+   stats = temp
 
-    images = element.find_elements_by_tag_name("img")
-    types = []
-    for image in images:
-        if image.get_attribute("alt") is not "M" and image.get_attribute("alt") is not "F":
-            types.append(image.get_attribute("alt"))
-    if len(types) == 1:
-        types.append('none')
+   # Get moves
+   moves = []
+   try:
+       for i in range(4, 8):
+           moves.append(text[i][2:])
+   except IndexError:
+       pass
 
-    return Pokemon(name, level, types, moves, item, ability, current_health, total_health, stats)
+   for move in moves:
+       query_data(move)
+   time.sleep(2)
 
+   moves = [parse_move_text(i) for i in moves]
 
-def query_data(data):
-    textbox = driver.find_element_by_class_name("battle-log-add").find_elements_by_class_name("textbox")[1]
-    textbox.send_keys("/data " + data)
-    textbox.send_keys(Keys.ENTER)
+   return Pokemon(name, level, types, moves, None, ability, current_health, total_health, stats)
 
 
 def retrieve_data():
@@ -334,9 +336,11 @@ class Pokemon:
         return self.name
 
     def damage_calc(self, enemy_move, enemy_mon):
+        print("We have reached damage_calc")
         enemy_stats = enemy_mon.calc_effective_stats()
         my_stats = self.calc_effective_stats()
         damage = 0
+        print("we have successfully calculated effective stats")
         if enemy_move.category == 'Physical':
             damage = \
                 (((2*enemy_mon.level/5 + 2) * enemy_stats[0]*enemy_move.power/my_stats[1])/50 + 2) * 93/100
@@ -346,9 +350,11 @@ class Pokemon:
         if enemy_move.type in enemy_mon.type:
             damage *= 1.5
         damage *= self.calculate_type_multiplier(enemy_move.type)
+        print("damage to be returned:" + str(damage))
         return damage
 
     def calc_effective_stats(self):
+        print("We have reached calc_effective_stats")
         real_stats = []
         for i in range(0, len(self.stats)):
             if i == 0:
