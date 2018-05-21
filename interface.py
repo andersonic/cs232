@@ -68,7 +68,7 @@ def log_in(username, password):
 def start():
     open_window("https://play.pokemonshowdown.com")
     time.sleep(2)
-    log_in("cs232-test-5", "cs232")
+    log_in("cs232-test-2", "cs232")
 
 
 def find_randbat():

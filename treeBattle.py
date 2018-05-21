@@ -45,61 +45,45 @@ def calc_switch(mon):
     #will be either the best, next best, or next next best depending on
     #what pokemon is expected to die or not
     
-    if mon is not None:
-        try:
-            #switch to pokemon specified by user
-            options = i.get_switch_options()
-            #account for u'Name' format when we call get_switch_options()
-            ammendedOptions = [op.encode("ascii") for op in options]
-                
-            print "ammended options and options[index]"
-            print ammendedOptions.index(mon)
-            print options[ammendedOptions.index(mon)]
-            
-            index = options.index(mon)
-            selection = options[index]
-            print("IN CALC_SWITCH: pokemon to be acted upon is " + selection)
-            i.act(selection, True)   
-            
-        except AttributeError:
-            print("Unable to switch to designated mon. Random_switch called")
-            random_switch()
-        else:
-            print("Unable to switch to designated mon. Random_switch called")
-            random_switch()
-    else:
+    if mon is None:
         try:
             print("Sorting pokemon to select switch option")
             #sort our team's pokemon by strongest move
             sortedRunnerUps = insertionSort_pokemon()
-            
+            justNames = [ pokemon.name for pokemon in sortedRunnerUps]
             #get available switch options
             options = i.get_switch_options()
             # loop through sorted pokemon until we find one that is not on the field
             k=0
-  
-            actNotSelected = False
+            print "options"
+            print options
+            print("Attempting to select an option")
+            actNotSelected = True
             while actNotSelected:
-                print ("inside of while loop")
-                k=k+1
-                pokemon = sortedRunnerUps[k].name
-                
-                print "pokemon sorted:"
-                print pokemon
-                
-                
+                pokemon = justNames[k]
+                print ("now looking at" + pokemon)
                 if pokemon in options:
+                    print "pokemon in options!"
                     index = options.index(pokemon)
-                    selection = options[index]
-                    i.act(selection, True)
-                    actNotSelected = True
-
-                
+                    i.act(options[index], True)
+                    break
+                k = k + 1
         except AttributeError:
             pass
         else:
             print("Unable to switch to sorted pokemon. Random_switch called")
             random_switch()
+    else:
+            #switch to pokemon specified by user
+            options = i.get_switch_options()
+            print ("mon is not None. attempting to locate switch option.")
+            # find the index where our pokemon is located
+            index = options.index(mon)
+            selection = options[index]
+            print("IN CALC_SWITCH: pokemon to be acted upon is " + mon)
+            i.act(mon, True)
+    
+       
 
 """
 # Function to do insertion sort. sorts pokemon by their best move/damage
@@ -148,6 +132,7 @@ def insertionSort_pokemon():
     return [(mon[1],mon[0]) for mon in results]
     """
 def insertionSort_pokemon():
+    print "entered insertion sort"
     damages_and_pokemon = []
     if i.own_team == []:
         i.get_own_team()
@@ -160,6 +145,7 @@ def insertionSort_pokemon():
         damages_and_pokemon.append([damage,mon])
    
     alist = damages_and_pokemon
+    #should be number and pokemon object
     print "damages and pokemon:"
     print damages_and_pokemon
     
@@ -177,10 +163,7 @@ def insertionSort_pokemon():
     #return in format: pokemon, damages
     results = alist
     #just return the sorted pokemon
-    print "sorted pokemon"
-    print results
-    print "tuple with just name"
-    print [ pokeTuple[1].name for pokeTuple in results]
+    print [ pokeTuple[1] for pokeTuple in results]
     return [ pokeTuple[1] for pokeTuple in results]
      
 def calc_danger_of_knockout(opponentMoves,ourMon,opponentMon):
@@ -253,32 +236,30 @@ def tree_battle():
         print("Can't do anything")
 
 def available_pokemon(sortedTeam,position): 
-
+    print "we are in available_pokemon"
     #looks for an available pokemon in the position specificed
     #for example: if we wanted the best available pokemon, we would 
     #do available_pokemon(sortedTeam,1). if we wanted the second best
     # , then position = 2
     
     options = i.get_switch_options()
-    #account for u'Name' format when we call get_switch_options()
-    ammendedOptions = [op.encode("ascii") for op in options] 
     
     available = 1
     # loop through sorted pokemon until we find one that is not on the field
-    k=0
-    print "ammended switch options:"
-    print ammendedOptions
-    while (k< (sortedTeam.length -1)):
+    
+    for pokemon in sortedTeam:
         print ("inside of while loop")
-        k=k+1
-        pokemon = sortedTeam[k].name
-        print pokemon
-        
-        if pokemon in ammendedOptions:
-            index = ammendedOptions.index(pokemon)
+        print pokemon, options
+        # if we can select that pokemon because it is available for a switch
+        if pokemon in options:
+            index = options.index(pokemon)
+            print ("pokemon found in options!")
+            print available, position
             if available == position:
+                print "available == position"
                 print index, pokemon
                 return index, pokemon
+            #pokemon was in options, but not in the right spot. 
             available = available + 1
     return None, None
 
@@ -331,10 +312,14 @@ def calc_switch_and_move():
         else:
             
             sortedPokemon = insertionSort_pokemon()
-            bestIndex, bestPokemon = available_pokemon(sortedPokemon,1)
-            nextBestIndex, nextBestPokemon = available_pokemon(sortedPokemon,2)
-            
-            if (ourPokemon == bestPokemon):
+            justNames = [pokemon.name for pokemon in sortedPokemon]
+            bestIndex, bestPokemon = available_pokemon(justNames,1)
+            bestPokemonObject = sortedPokemon.index(bestPokemon)
+            print "best pokemon object" 
+            print bestPokemonObject
+            nextBestIndex, nextBestPokemon = available_pokemon(justNames,2)
+            nextBestObject = sortedPokemon.index(nextBestPokemon)
+            if (ourPokemon.name == bestPokemon):
                 treeStatement = treeStatement \
                 + "our pokemon is the best out of available pokemon-->Attack"
                 print treeStatement
@@ -343,11 +328,11 @@ def calc_switch_and_move():
                 treeStatement = treeStatement \
                 + "pokemon is not the best out of available pokemon-->" 
                 print treeStatement
-                if(calc_danger_of_knockout(opponentMoves,bestPokemon,opponentPokemon)):
+                if(calc_danger_of_knockout(opponentMoves,bestPokemonObject,opponentPokemon)):
                     treeStatement = treeStatement \
                     + "best pokemon in danger of knockout-->"
                     
-                    if (ourPokemon == nextBestPokemon):
+                    if (ourPokemon == nextBestObject):
                         treeStatement = treeStatement \
                         + "our pokemon is the next best-->Attack"
                         print treeStatement
@@ -356,7 +341,7 @@ def calc_switch_and_move():
                         treeStatement = treeStatement \
                         + "our pokemone is not the next best-->"
             
-                        if (calc_danger_of_knockout(opponentMoves,nextBestPokemon,opponentPokemon)):
+                        if (calc_danger_of_knockout(opponentMoves,nextBestObject,opponentPokemon)):
                             treeStatement = treeStatement \
                             + "next best pokemon in danger of knockout-->Attack"
                             print treeStatement
