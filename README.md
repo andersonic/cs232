@@ -3,6 +3,7 @@
 ### Status Updates
 - Fainting works in most cases
 - Heuristic calculation works. Needs refinement
+- Implement expectimax
 
 ### To Do
 - COMMENTS
@@ -10,5 +11,4 @@
 - Handle fringe cases in fainting
 - Handle mega evolution/form changes
 - When Pokémon switch out, remove stat changes
-- Implement expectimax
 - Handle items and abilities
