@@ -6,7 +6,7 @@ Holds a dictionary in JSON format with Pokémon names as keys and a list of the 
 ### expectimax.py
 Contains methods to determine the best action using a modified expectimax; makes use of state.py.
 
-###interface.py
+### interface.py
 Contains all methods necessary to interface with the Pokémon Showdown server.
 
 ### interface_legacy.py
@@ -25,3 +25,4 @@ Holds the raw data that was used to make data.txt; has superfluous data not in d
 Module containing the class State, which is comprised of both players' teams (current health, etc. included), the Pokémon currently on the battlefield, whether the bot can switch Pokémon and whether the bot's current Pokémon can use a move.
 
 ### tree_battle.py
+Implements the battle tree.
