@@ -28,4 +28,4 @@ Module containing the class State, which is comprised of both players' teams (cu
 Implements the battle tree.
 
 ### tree_battle.py
-Implements the battle tree.
+Implements the battle tree. Old version.
