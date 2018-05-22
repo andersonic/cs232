@@ -4,7 +4,8 @@ import interface as i
 import time
 
 """Plays randbats randomly, with a set probability to switch. Does not store game state,
-as the game state does not affect its actions. This is version 2 of the original tree_battle"""
+as the game state does not affect its actions. This is version 2 of the original tree_battle.
+comments were not disabled from this version because the program was not successfully debugged."""
 
 
 def start():
@@ -60,7 +61,9 @@ def calc_switch(mon):
             print("Attempting to select an option")
             actNotSelected = True
             while actNotSelected:
+                
                 pokemon = justNames[k]
+                
                 print ("now looking at" + pokemon)
                 if pokemon in options:
                     print "pokemon in options!"
@@ -228,7 +231,7 @@ def tree_battle():
             #account for u'Name' format when we call get_switch_options()
             ammendedOptions = [op.encode("ascii") for op in options] 
             
-            bestMove, bestDamage = calc_max_damage(i.own_moves)
+            bestMove, bestDamage = calc_max_damage(i.own_mon_out.available_moves)
             moveIndex = ammendedOptions.index(bestMove)
             i.act(options[moveIndex])
       
@@ -283,8 +286,8 @@ def calc_switch_and_move():
         ourPokemon = i.own_mon_out
         opponentPokemon = i.opponent_mon_out
         print ("fetched our mon and opponent mon")
-        ourMoves = ourPokemon.moves
-        opponentMoves = opponentPokemon.moves
+        ourMoves = ourPokemon.available_moves
+        opponentMoves = opponentPokemon.available_moves
         print ("fetched our mon and opponent mon moves")
         
         move, damage = calc_max_damage(ourMoves)
