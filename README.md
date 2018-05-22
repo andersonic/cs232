@@ -24,5 +24,8 @@ Holds the raw data that was used to make data.txt; has superfluous data not in d
 ### state.py
 Module containing the class State, which is comprised of both players' teams (current health, etc. included), the Pokémon currently on the battlefield, whether the bot can switch Pokémon and whether the bot's current Pokémon can use a move.
 
+### treeBattle.py
+Implements the battle tree.
+
 ### tree_battle.py
 Implements the battle tree.

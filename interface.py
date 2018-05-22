@@ -1,22 +1,18 @@
-# -*- coding: cp1252 -*-
 from selenium import webdriver, common
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 import math
 import time
 import os
-import json
+import demjson
 
-USERNAME = "cs232-test-3"
+USERNAME = "cs232-test-1"
 PASSWORD = "cs232"
 
 driver = None
-#all_pokemon_data = demjson.decode(open('pokemon_data.txt', 'r').read())
-with open('pokemon_data.txt') as r:
-    all_pokemon_data = json.load(r)
+all_pokemon_data = demjson.decode(open('pokemon_data.txt', 'r').read())
 own_team = []
 opponent_team = []
-
 own_mon_out = None
 opponent_mon_out = None
 
@@ -35,7 +31,7 @@ def open_window(url):
 
 
 def log_out():
-    """Log out of Pokémon Showdown. Refresh to ensure logout goes through."""
+    """Log out of Pokemon Showdown. Refresh to ensure logout goes through."""
     driver.find_element_by_name("openOptions").click()
     try:
         driver.find_element_by_name("logout").click()
@@ -46,7 +42,7 @@ def log_out():
 
 
 def log_in(username, password):
-    """Log in to Pokémon Showdown."""
+    """Log in to Pokemon Showdown."""
     log_out()
 
     logged_in = False
@@ -97,7 +93,8 @@ def find_randbat():
 
 
 def act(action, switch=False):
-    """Take an action (a move name or a Pokémon name) as a parameter and whether the action is a switch."""
+    """Take an action (a move name or a Pokemon name) as a parameter and whether the action is a switch."""
+
     mega_evolve()
 
     if switch:
@@ -125,7 +122,7 @@ def mega_evolve():
 
 
 def get_own_team():
-    """Precondition: first turn. Returns all Pok�mon, including stats, moves and items."""
+    """Precondition: first turn. Returns all Pokemon, including stats, moves and items."""
 
     pokemon_list = []
 
@@ -153,15 +150,6 @@ def parse_own_team(element):
     stats = read_stats(text)
     moves = get_own_mon_moves(text)
 
-    # Get types
-    images = element.find_elements_by_tag_name("img")
-    types = []
-    for image in images:
-        if image.get_attribute("alt") is not "M" and image.get_attribute("alt") is not "F":
-            types.append(image.get_attribute("alt"))
-    if len(types) == 1:
-        types.append('none')
-
     # Get health
     name = " ".join(text[0].split(" ")[:len(text[0].split(" "))-1])
 
@@ -183,6 +171,7 @@ def parse_own_team(element):
         item = " ".join(temp[1].split(" ")[1:])
     except IndexError:
         ability = " ".join(temp[0].split(" ")[1:])
+
     return Pokemon(name, level, types, moves, None, ability, total_health, stats)
 
 
@@ -223,6 +212,7 @@ def get_own_mon_moves(text):
         query_data(move)
     time.sleep(2)
     data = retrieve_data()
+
     return [parse_move_text(i, data) for i in moves]
 
 
@@ -255,7 +245,6 @@ def parse_opposing_mon():
         level = int(name_temp[len(name_temp) - 1][1:])
     except ValueError:
         level = 100
-
 
     base_stats = get_base_stats(name)
 
@@ -329,7 +318,7 @@ def get_base_stats(mon):
 
 
 def calc_stats(base_stats, level):
-    """Calculate a Pokémon's stats based on its base stats and level"""
+    """Calculate a Pokemon's stats based on its base stats and level"""
     stats = []
     stats.append(math.floor((31 + 2 * base_stats[0] + 21) * level/100 + 10 + level))
 
@@ -451,7 +440,7 @@ class Pokemon:
         self.floating = False
 
     def __eq__(self, other):
-        """Note that this definition of equality breaks down when comparing Pokémon on opposite teams"""
+        """Note that this definition of equality breaks down when comparing Pokemon on opposite teams"""
         if self is None:
             return False
         elif other is None:
@@ -461,7 +450,6 @@ class Pokemon:
 
     def damage_calc(self, enemy_move, enemy_mon):
         """Legacy method. Use damage calc method from the Move class"""
-
         enemy_stats = enemy_mon.calc_effective_stats()
         my_stats = self.calc_effective_stats()
         damage = 0
@@ -475,43 +463,6 @@ class Pokemon:
             damage *= 1.5
         damage *= self.calculate_type_multiplier(enemy_move.type)
         return damage
-
-    def calc_effective_stats(self):
-        """Legacy method."""
-        real_stats = []
-        for i in range(0, len(self.stats)):
-            if i == 0:
-                # dealing with attack
-                atk_mod = 1
-                if "BRN" in self.statuses:
-                    atk_mod *= 0.5
-                if "Atk" in self.statuses:
-                    atk_mod *= self.statuses["Atk"]
-                real_stats.append(self.stats[i] * atk_mod)
-            elif i == 1:
-                # dealing with defense
-                try:
-                    real_stats.append(self.stats[i] * self.statuses["Def"])
-                except KeyError:
-                    real_stats.append(self.stats[i])
-            elif i == 2:
-                try:
-                    real_stats.append(self.stats[i] * self.statuses["SpA"])
-                except KeyError:
-                    real_stats.append(self.stats[i])
-            elif i == 3:
-                try:
-                    real_stats.append(self.stats[i] * self.statuses["SpD"])
-                except KeyError:
-                    real_stats.append(self.stats[i])
-            elif i == 4:
-                spe_mod = 1
-                if "PAR" in self.statuses:
-                    spe_mod *= 0.25
-                if "Spe" in self.statuses:
-                    spe_mod *= self.statuses["Spe"]
-                real_stats.append(self.stats[i] * spe_mod)
-        return real_stats
 
     def calc_real_stats(self):
         """Calculate effective stats based on stats and boosts, using +x
@@ -639,9 +590,6 @@ class Move:
         else:
             self.target_boosts = target_boosts
 
-    def __eq__(self, other):
-        return self.type == other.type and self.power == other.power and self.category == other.category
-    
     def apply_move(self, user, target):
         target.present_health -= self.damage_calc(user, target)
         self.apply_boosts(user, target)
@@ -663,6 +611,7 @@ class Move:
                 (((2*user.level/5 + 2) * user_stats[2]*power/target_stats[3])/50 + 2) * 93/100
         if self.type in user.type:
             damage *= 1.5
+
         if self.type == "Normal":
             if user.ability == "Pixilate":
                 self.type = "Fairy"
@@ -740,7 +689,7 @@ def update(on_last_turn=False):
 
     for log in logs:
         if " fainted!" in log and " opposing " in log:
-            # An opposing Pokémon has fainted
+            # An opposing Pokemon has fainted
             temp = log.split(" ")
             name = " ".join(temp[2:len(temp) - 1])
             for mon in opponent_team:
@@ -753,7 +702,7 @@ def update(on_last_turn=False):
                 opponent_team.append(your_fainted_mon)
             your_fainted_mon.present_health = 0
         elif " fainted!" in log and on_last_turn:
-            # One of my Pokémon has fainted
+            # One of my Pokemon has fainted
             temp = log.split(" ")
             name = " ".join(temp[:len(temp) - 1])
             for mon in own_team:
@@ -829,7 +778,7 @@ def update_own_mon():
         own_mon_out.available_moves = [move for move in own_mon_out.moves if move.name in move_names]
 
     except common.exceptions.NoSuchElementException:
-        # Your Pokémon is not there due to self-switch/forced switch
+        # Your Pokemon is not there due to self-switch/forced switch
         pass
 
 
@@ -853,96 +802,6 @@ def update_opponent():
                 opp_mon_out = pokemon
         except AttributeError:
             pass
-    return Move(type, power, category, name=move_name)
-
-
-def update(on_last_turn=False):
-    """Pre-condition: battle state is up to date until turn_to_parse - 1.
-    Post-condition: battle state is up to date. Except it probably misses loads of stuff"""
-
-    first_line = 0
-    logs = [log.text for log in driver.find_elements_by_class_name("battle-history")]
-    turns = [log for log in logs if "Turn " in log]
-
-    try:
-        most_recent_turn = turns[len(turns) - 2]
-    except IndexError:
-        most_recent_turn = turns[len(turns) - 1]
-
-    if on_last_turn:
-        most_recent_turn = turns[len(turns)-1]
-
-    for i in range(0, len(logs)):
-        if logs[i] == most_recent_turn:
-            first_line = i
-    logs = logs[first_line:]
-
-    my_fainted_mon = None
-    your_fainted_mon = None
-
-    for log in logs:
-        if " fainted!" in log and " opposing " in log:
-            # An opposing Pok�mon has fainted
-            name = log.split(" ")[2]
-            for mon in opponent_team:
-                if mon.name == name:
-                    your_fainted_mon = mon
-            # Can't assert because you might send an unrevealed mon in to die right away
-            if your_fainted_mon is None:
-                your_fainted_mon = Pokemon(name=name)
-                opponent_team.append(your_fainted_mon)
-        elif " fainted!" in log and on_last_turn:
-            # One of my Pok�mon has fainted
-            name = log.split(" ")[0]
-            for mon in own_team:
-                if mon.name == name:
-                    my_fainted_mon = mon
-            assert my_fainted_mon is not None
-
-    if your_fainted_mon is not None and my_fainted_mon is not None:
-        # We both fainted
-        print("double faint")
-        your_fainted_mon.present_health = 0
-        my_fainted_mon.present_health = 0
-        return
-    elif your_fainted_mon is not None and my_fainted_mon is None:
-        # You fainted, I didn't. Might still have sustained damage
-        print("you fainted")
-        update_opponent()
-        update_own_mon()
-        return
-    elif your_fainted_mon is None and my_fainted_mon is not None:
-        # I fainted, you didn't
-        print("i fainted")
-        update_opponent()
-        return
-    else:
-        print("no faints")
-        # Neither of us fainted
-        update_own_mon()
-        update_opponent()
-        return
-
-
-def update_own_mon():
-    try:
-        statbar = driver.find_element_by_class_name("rstatbar")
-        firstline = " ".join(statbar.text.split("\n")[0].split(" "))
-        mon = " ".join(firstline.split(" ")[:len(firstline.split(" ")) - 1])
-        global own_mon_out
-
-        if "mega" in [a.get_attribute("alt") for a in statbar.find_elements_by_tag_name("img")]:
-            # It's a mega
-            print("mega")
-
-            current_mon = driver.find_element_by_name("chooseDisabled")
-            hover = ActionChains(driver).move_to_element(current_mon)
-            hover.perform()
-            pokemon = driver.find_element_by_id("tooltipwrapper")
-            mega_mon = parse_own_team(pokemon)
-            own_team.remove(own_mon_out)
-            own_team.append(mega_mon)
-            own_mon_out = mega_mon
 
     global opponent_mon_out
     if "mega" in [a.get_attribute("alt") for a in statbar.find_elements_by_tag_name("img")] and not already_parsed:
@@ -1036,10 +895,9 @@ def get_move_options():
 
 
 def get_switch_options():
-    """Return a list of the Pokémon you can switch in."""
+    """Return a list of the Pokemon you can switch in."""
     pokemon_list = []
     pokemon_buttons = driver.find_elements_by_name("chooseSwitch")
     for pokemon in pokemon_buttons:
         pokemon_list.append(pokemon.text)
     return pokemon_list
-
