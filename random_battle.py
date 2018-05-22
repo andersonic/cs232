@@ -10,6 +10,7 @@ as the game state does not affect its actions."""
 
 def start():
     i.open_window("https://play.pokemonshowdown.com")
+    time.sleep(2)
     i.log_in("cs232-test-2", "cs232")
 
 
